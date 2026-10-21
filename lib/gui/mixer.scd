@@ -30,7 +30,8 @@
 		if (t[\kind] == \master or: { r == t[\name] }) {
 			View().fixedSize_(Size(44, 58))
 		} {
-			~knob.("→ " ++ r, [0, 1], { t[\sends][i] }, { |x| ~send.(t[\name], r, x) }, 28, ~tracks[r][\color])
+			~knob.("→ " ++ r, [0, 1], { t[\sends][i] }, { |x| ~send.(t[\name], r, x) }, 28, ~tracks[r][\color],
+				"s:%:%".format(t[\name], r), "% send %".format(t[\name], r))
 		}
 	};
 	VLayout(*(cells.clump(3).collect { |row| HLayout(*(row ++ [nil])).spacing_(0) } ++ [nil])).spacing_(0)
@@ -62,7 +63,7 @@
 		titleButton,
 		tempo,
 		[~sendGrid.(t), stretch: 1],
-		[~knob.("pan", [-1, 1], { t[\pan] }, { |x| ~tset.(name, \pan, x) }, 30, color), align: \center],
+		[~knob.("pan", [-1, 1], { t[\pan] }, { |x| ~tset.(name, \pan, x) }, 30, color, "t:%:pan".format(name), "% pan".format(name)), align: \center],
 		HLayout(nil, ~meterView.(t), fader, nil).spacing_(5),
 		db,
 		HLayout(*(

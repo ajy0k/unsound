@@ -7,6 +7,19 @@ into return tracks, device chains everywhere, and a piano roll or step grid when
 write something. On top of that, things **move by themselves**. Instruments improvise, patterns
 mutate, filters drift, the master stutters. You can let it run, nudge it, or grab any part directly.
 
+**Current direction (after playing it): toy, not workspace.** It should be a noise toy first:
+make interesting sound the moment it starts, reward poking at things you don't understand, and
+keep surprising you. The Ableton structure stays as the skeleton, but sound, randomness and
+play come first. Expect lots of short iterations: play it → say what feels dead → change it.
+
+**Where it's heading (end of session 1, 2026-10-21):** it's a playground today. The interest is
+in *the sounds a computer can make on its own*, not in patching (no plugboards/modular UI). Wanted:
+- **Everything can modulate everything**: any signal or setting as a source, any setting as a target,
+  without a patching interface (sources picked by gesture, chance, or "infect").
+- **Lurch toward something, or switch on a dime**: glide the whole set toward a target state
+  (a scene, a dice roll, a "mood") at any speed, from slow drift to an instant cut.
+- **Better use of the screen**, still to be worked out.
+
 Principles:
 
 1. **Open, not locked down.** Every parameter has a control. Nothing is hidden behind a macro.
@@ -68,7 +81,27 @@ Legend: ✅ working · 🟡 partly there · ⬜ not started
 - ⬜ Rack-style macros: map 8 knobs to any device params on a track
 - ⬜ Modulators as devices: LFO, random, envelope follower, each assignable to any parameter
 
+### 2½. Modulation, randomness, play
+- ✅ Mods on anything: right-click any knob (device, instrument, send, pan, bpm…) to make it move by itself;
+  shapes sine/tri/square/saw/random/drunk/chaos/burst; turning a modulated knob moves its home
+- ✅ Mods on mods: a mod's rate and depth are knobs too ("rate of rate of creature fever")
+- ✅ Mods view (tab) listing every mod; infect (I) scatters mods across the set; cure (\\) removes all
+- ✅ Mystery "?" knob on every device: sweeps a hidden random handful of its params
+- ✅ Dice (/) per track and per device
+- ⬜ Mod sources from audio: envelope follower / pitch / onsets of one track modulating another
+- ⬜ Mods saved in scenes and sets (they're runtime-only right now)
+- ⬜ Mods that change shape by themselves; mods that spawn/kill other mods ("ecology")
+- ⬜ "Temperature": one knob that scales every mod depth at once
+- ⬜ Randomize-with-memory: undo the last dice; "go back to how it sounded 30 s ago"
+- ⬜ Visual feedback that feels alive: knob trails, a big scope/spectrum, track activity glows
+
 ### 3. Instruments
+- ✅ **creature**: Gendy + Latoocarfian + feedback FM + crackle, tangled; vague knobs (hunger, tangle, grit,
+  breath, fever, rot, body); XY pad; spasms
+- ✅ **bytebeat**: 8 integer formulas on a counter, a/b/c shifts, rate (keys transpose it)
+- ✅ **hum**: self-oscillating four-delay feedback network (tension, size, tint, unrest, swell)
+- ⬜ More noise sources: circuit-bent oscillators, Gendy swarms, granular noise from the corpus run at audio rate,
+  "radio" (scanning filtered noise + bursts), feedback between tracks (a track's output as another's input)
 - ✅ **grains**: corpus walk or stick to one file (with `stray` and `hop` per bar); random or scanning playhead; size, pitch, reverse, click,
   gestures (single/cloud/ratchet/smear) with weights; repeat count
 - ✅ **kick**: 16-step grid you draw; mutation shows as a variation and drifts home; tone/decay/sweep/click/drive/swing/ratchet
@@ -83,6 +116,10 @@ Legend: ✅ working · 🟡 partly there · ⬜ not started
 - ⬜ fm: more algorithms, operator feedback, 4 drawable waves, morph between two drawings
 
 ### 4. Clips
+(Not there yet: today each track has one roll/pattern, not Ableton-style clips.)
+- ⬜ **Clip slots per track** with launch/stop, each holding notes or steps *and* modulation lanes
+- ⬜ **Per-clip modulation over time**: draw or record any knob's movement into the clip (automation lanes
+  that loop with the clip), and clip-level mods (an LFO that only exists while that clip plays)
 - ✅ Piano roll (24 rows, 8–64 steps, scale highlighting, click/drag/delete, preview on click), own speed knob
 - ✅ Wander mode (improvises in scale) with `keep wander` to capture it into the roll; `suggest`
 - ✅ Repeats and repeat chance per note; non-destructive mutation (shift/octave/skip/double)
@@ -135,12 +172,13 @@ Legend: ✅ working · 🟡 partly there · ⬜ not started
 | M3 | ✅ Ableton-style rebuild | mixer, real sends/returns, device chains, piano roll, steps, waveforms, drawn wavetables |
 | M4 | ✅ tempo per track, browser, 27 devices, keys + MIDI, scenes, sets | play it without the mouse, keep what you made |
 | M5 | clips and launcher | several clips per track, follow actions, automation |
-| M6 | modulators + MIDI | any knob can move by itself or be mapped to hardware |
+| M5½ | ✅ noise toys: creature/bytebeat/hum, mods on mods, infect/dice/mystery | it makes noise on its own the moment it starts |
+| M6 | clips with automation lanes + saved MIDI maps | per-clip motion; launch clips like Ableton |
 | M7 | events, score, memory | leave it running and it develops and quotes itself |
 | M8 | descriptors + corpus brain | drums from the folder; Samplebrain-style reconstruction |
 
-Suggested next: **M6**, modulators as devices plus saved MIDI maps and controller templates. Then the song
-editor in the GUI, then **M7** (events + memory).
+Suggested next: keep iterating on *sound* until it's fun to sit with (more noise sources, audio-rate
+mod sources, temperature knob, undo-dice). Then clips with automation lanes (M6).
 
 ## Open questions
 

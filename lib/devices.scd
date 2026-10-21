@@ -385,8 +385,10 @@
 ~dev = { |name, type, index, preset, label|
 	var t = ~tracks[name], dt = ~deviceTypes[type], d, last;
 	if (t.isNil or: { dt.isNil }) { "unsound: no track % or device %".format(name, type).warn; nil } {
-		d = (type: type, on: true, params: (), label: label);
+		~nextUid = (~nextUid ? 0) + 1;
+		d = (type: type, on: true, params: (), label: label, uid: ~nextUid);
 		dt[\params].do { |p| d[\params][p[\key]] = p[\default] };
+		~rollMystery.(d);
 		if (t[\kind] == \return and: { d[\params][\mix].notNil }) { d[\params][\mix] = 1 };
 		(preset ? ()).keysValuesDo { |k, v| d[\params][k] = v };
 		last = t[\devices].count { |x| x[\pinned] != true };
@@ -420,6 +422,7 @@
 
 ~drem = { |name, d|
 	if (d[\pinned] != true) {
+		~unmodPrefix.("d:%:".format(d[\uid]));
 		d[\routine].stop;
 		d[\synth].free;
 		~tracks[name][\devices].remove(d);
@@ -439,9 +442,11 @@
 // Free and rebuild a track's whole chain from a list of device descriptions (used by scenes).
 ~setChain = { |name, descs|
 	var t = ~tracks[name];
-	t[\devices].do { |d| d[\routine].stop; d[\synth].free };
+	t[\devices].do { |d| d[\routine].stop; d[\synth].free; ~unmodPrefix.("d:%:".format(d[\uid])) };
 	t[\devices] = List.newFrom(descs.collect { |x|
-		var d = (type: x[\type], on: x[\on], params: x[\params].copy, label: x[\label], pinned: x[\pinned]);
+		var d = (type: x[\type], on: x[\on], params: x[\params].copy, label: x[\label], pinned: x[\pinned],
+			uid: ~nextUid = (~nextUid ? 0) + 1);
+		~rollMystery.(d);
 		~buildDevice.(t, d);
 		if (~running == true) { ~startDevice.(t, d) };
 		d

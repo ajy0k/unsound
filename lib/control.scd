@@ -9,6 +9,7 @@
 //   ↑ / ↓        selected track volume up / down   (with shift: tempo of that track up / down)
 //   tab          switch Clip / Devices
 //   N  new sound on the selected track     M  mute selected     R  resync selected
+//   /  dice the selected track (instrument + devices)     I  infect: scatter mods     \  cure: remove all mods
 //   B  hold: stutter every stutter device on the master while held
 //   V  hold: freeze every freeze device on the master while held
 //   Q  lurch      C  capture a scene      [ / ]  launch previous / next scene
@@ -70,8 +71,11 @@
 	{ key == 16r1000015 } {
 		if (mod.isShift) { ~nudgeTempo.(t, 1 / 1.03) } { ~tset.(~selected, \level, t[\level] / 1.12) }
 	}
-	{ key == 16r1000001 } { ~detailMode = if (~detailMode == \clip) { \devices } { \clip }; ~refreshDetail.() }
+	{ key == 16r1000001 } { ~detailMode = switch (~detailMode) { \clip } { \devices } { \devices } { \mods } { \clip }; ~refreshDetail.() }
 	{ char == $n } { ~repatch.(~selected) }
+	{ char == $/ } { ~diceTrack.(~selected) }
+	{ char == $i } { ~infect.(3) }
+	{ char == $\\ } { ~cure.() }
 	{ char == $m } { ~tset.(~selected, \on, t[\on].not) }
 	{ char == $r } { ~resync.(~selected) }
 	{ char == $b } { ~holdMaster.(\stutter, true) }

@@ -15,7 +15,7 @@
 // Settings that are runtime state, not something you set.
 ~runtimeKeys = [\id, \meter, \meterShow, \pos, \abs, \deg, \cursor, \head, \lastBuf, \lastPos, \tdrift,
 	\toneOff, \barAcc, \color, \heard, \routine, \ramps, \strip, \grp, \src, \fxg, \bus, \inBus, \fbBus,
-	\carBuf, \modBuf, \devices, \sends, \live, \held];
+	\carBuf, \modBuf, \devices, \sends, \live, \held, \voice];
 
 ~storable = { |v|
 	v.isNumber or: { v.isKindOf(Symbol) } or: { v.isKindOf(Boolean) }

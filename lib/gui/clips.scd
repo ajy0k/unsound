@@ -191,3 +191,83 @@
 		ms
 	)
 };
+
+// ---------------------------------------------------------------- drones: XY pad + big knobs
+
+// Drag to move two params at once. The dot shows the live values, so modulation makes it crawl.
+~xyPad = { |t, xk, yk|
+	var params = ~voiceTypes[t[\type]][\params];
+	var px = params.detect { |p| p[\key] == xk }, py = params.detect { |p| p[\key] == yk };
+	var trail = List[], c = t[\color];
+	var view = UserView().minSize_(Size(380, 320)).canFocus_(false).background_(Color.grey(0.07));
+	var put = { |tid, spec, key, u|
+		var m = ~modFor.(tid);
+		if (m.notNil) { m[\home] = u } { ~tset.(t[\name], key, spec.map(u)) };
+	};
+	var setXY = { |uv, x, y|
+		put.("t:%:%".format(t[\name], xk), px[\spec], xk, (x / uv.bounds.width).clip(0, 1));
+		put.("t:%:%".format(t[\name], yk), py[\spec], yk, (1 - (y / uv.bounds.height)).clip(0, 1));
+	};
+	view.drawFunc = { |uv|
+		var b = uv.bounds, pt = Point(px[\spec].unmap(t[xk]) * b.width, (1 - py[\spec].unmap(t[yk])) * b.height);
+		trail.add(pt);
+		if (trail.size > 160) { trail.removeAt(0) };
+		Pen.strokeColor = Color.grey(0.16);
+		8.do { |i|
+			Pen.line(Point(b.width * i / 8, 0), Point(b.width * i / 8, b.height));
+			Pen.line(Point(0, b.height * i / 8), Point(b.width, b.height * i / 8));
+		};
+		Pen.stroke;
+		trail.do { |q, i|
+			Pen.fillColor = Color(c.red, c.green, c.blue, i / trail.size * 0.6);
+			Pen.fillOval(Rect.aboutPoint(q, 2 + (i / trail.size * 3), 2 + (i / trail.size * 3)));
+		};
+		Pen.fillColor = c;
+		Pen.fillOval(Rect.aboutPoint(pt, 10, 10));
+		Pen.stringAtPoint(xk.asString ++ " →", Point(8, b.height - 18), Font(Font.defaultSansFace, 11), Color.grey(0.6));
+		Pen.stringAtPoint("↑ " ++ yk.asString, Point(8, 6), Font(Font.defaultSansFace, 11), Color.grey(0.6));
+	};
+	view.mouseDownAction = { |uv, x, y| setXY.(uv, x, y); nil };
+	view.mouseMoveAction = { |uv, x, y| setXY.(uv, x, y); nil };
+	~animated.add({ if (view.isClosed) { false } { view.refresh; true } });
+	view
+};
+
+~droneClip = { |t|
+	var it = ~voiceTypes[t[\type]];
+	HLayout(
+		[~xyPad.(t, it[\xy][0], it[\xy][1]), stretch: 2],
+		[VLayout(
+			~row.(~button.("dice (/)", { ~diceTrack.(t[\name]) }), ~button.("infect this", {
+				it[\params].scramble.keep(2).do { |p| ~addMod.(~trackTarget.(t, p[\key], p[\spec], p[\label])) };
+			}), ~lbl.("right-click a knob to make it move by itself")),
+			*(it[\params].collect { |p| ~tknob.(t, p[\key], p[\spec], p[\label], 58) }
+				.clump(4).collect { |row| HLayout(*(row ++ [nil])) }
+				++ [HLayout(~tknob.(t, \busy, [0, 1], "spasms", 58), nil), nil])
+		), stretch: 3]
+	)
+};
+
+// ---------------------------------------------------------------- mods
+
+// Every running modulator. Rate and depth are knobs too: right-click them for mods on mods.
+~modsView = {
+	var cards = ~mods.collect { |m|
+		var tg = m[\target];
+		~panel.(tg[\name], Color(0.8, 0.8, 0.85), VLayout(
+			HLayout(
+				~menu.(~modShapes, { m[\shape] }, { |x| m[\shape] = x }),
+				~knob.("rate", m[\rateTarget][\spec], m[\rateTarget][\get], m[\rateTarget][\set], 40, ~accent,
+					m[\rateTarget][\tid], m[\rateTarget][\name]),
+				~knob.("depth", m[\depthTarget][\spec], m[\depthTarget][\get], m[\depthTarget][\set], 40, ~accent,
+					m[\depthTarget][\tid], m[\depthTarget][\name]),
+				nil
+			)
+		), 260, [Button().canFocus_(false).fixedWidth_(20).states_([["x"]]).action_({ ~removeMod.(m) })])
+	};
+	var grid = cards.clump(5).collect { |row| HLayout(*(row ++ [nil])) };
+	ScrollView().canvas_(View().layout_(VLayout(*([
+		~row.(~button.("infect (I)", { ~infect.(4) }), ~button.("cure all (\\)", { ~cure.() }),
+			~lbl.("% mods running · right-click any knob anywhere to add one · right-click rate/depth for mods on mods".format(~mods.size)))
+	] ++ grid ++ [nil]))))
+};

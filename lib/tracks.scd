@@ -100,6 +100,8 @@ OSCdef(\uMeter, { |msg|
 	t[\grp] = Group.tail(target);
 	t[\src] = Group.head(t[\grp]);
 	if (t[\kind] == \return) { Synth.tail(t[\src], \uThru, [in: t[\inBus], fb: t[\fbBus], out: t[\bus]]) };
+	// continuous instruments (creature, bytebeat, hum) keep one synth running in the source group
+	if (t[\kind] == \inst) { ~voiceTypes[t[\type]][\build] !? { |b| b.value(t) } };
 	t[\fxg] = Group.tail(t[\grp]);
 	t[\devices].do { |d| ~buildDevice.(t, d) };
 	t[\strip] = Synth.tail(t[\grp], \uStrip,
@@ -116,6 +118,7 @@ OSCdef(\uMeter, { |msg|
 		t[\type] = type;
 		t.putAll((busy: 0.5, speed: 1, drift: 0.3, color: it[\color],
 			sync: true, bpm: ~tempo, tempoDrift: 0, stray: 0, hop: 0));
+		(it[\params] ? []).do { |p| t[p[\key]] = p[\default] };
 		t.putAll(it[\defaults] ? ());
 		(settings ? ()).keysValuesDo { |k, v| if (k != \name) { t[k] = v } };
 		t[\sends] = (t[\sends] ++ (0 ! ~maxReturns)).keep(~maxReturns);
@@ -156,6 +159,8 @@ OSCdef(\uMeter, { |msg|
 	var t = ~tracks[name], i;
 	if (t.notNil and: { t[\kind] != \master }) {
 		~stopTrack.(t);
+		~unmodPrefix.("t:%:".format(name));
+		t[\devices].do { |d| ~unmodPrefix.("d:%:".format(d[\uid])) };
 		t[\grp].free;
 		if (t[\kind] == \inst) { ~voiceTypes[t[\type]][\free].value(t); ~voiceOrder.remove(name) };
 		if (t[\kind] == \return) {
@@ -186,6 +191,7 @@ OSCdef(\uMeter, { |msg|
 		{ \on } { ~updateGates.() }
 		{ \solo } { ~updateGates.() }
 		{ \pre } { ~refreshAllStrips.() };
+		t[\voice] !? { |v| if (val.isNumber) { v.set(key, val) } };
 	};
 };
 
@@ -259,6 +265,7 @@ OSCdef(\uMeter, { |msg|
 	~stopTrack.(t);
 	if (t[\kind] == \inst) {
 		t[\routine] = Routine({ ~voiceTypes[t[\type]][\mover].value(t) }).play(~clock, quant: 4);
+		t[\voice] !? { |v| v.set(\gate, 1) };
 	};
 	t[\devices].do { |d| ~startDevice.(t, d) };
 };
@@ -267,4 +274,5 @@ OSCdef(\uMeter, { |msg|
 	t[\routine].stop;
 	t[\ramps].do(_.stop);
 	t[\devices].do { |d| d[\routine].stop };
+	t[\voice] !? { |v| v.set(\gate, 0) };
 };

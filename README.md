@@ -53,6 +53,16 @@ Knobs: drag up/down (⇧ for fine), scroll, double-click to reset.
 
 Mutation and drift vary what's played around your settings. They never overwrite what you set.
 
+**Make it move:** right-click (or alt-click) any knob to give it a modulator; right-click again to
+remove it. The **mods** tab lists them all, and a mod's rate and depth are knobs too, so you can
+modulate the modulators. **infect** (I) scatters random mods over the set, **cure** (\\) removes
+them, **dice** (/) randomizes a track, and every device has a mystery **?** knob that sweeps a
+hidden handful of its settings.
+
+**Noise instruments:** `creature` (chaotic oscillators tangled together), `bytebeat` (8-bit integer
+formulas), and `hum` (a self-oscillating feedback network). They drone continuously, spasm by
+themselves, and have an XY pad in their clip view.
+
 ## Layout
 
 | file | what |
@@ -63,9 +73,11 @@ Mutation and drift vary what's played around your settings. They never overwrite
 | `lib/tracks.scd` | tracks, strips, sends, returns, solo/mute, meters |
 | `lib/devices.scd` | insert devices and their movers |
 | `lib/melody.scd` | piano roll, wander mode, repeats, mutation |
+| `lib/mods.scd` | modulators (and mods on mods), infect, cure, dice, mystery knobs |
+| `lib/drones.scd` | shared shape of the continuous noise instruments |
 | `lib/scenes.scd` | scenes, morphing, song, save/load sets |
 | `lib/control.scd` | computer keyboard and MIDI (notes, learn, DJ controllers) |
-| `lib/voices/*.scd` | instruments: `grains`, `kick`, `keys`, `fm` (each with its Clip and Devices views) |
+| `lib/voices/*.scd` | instruments: `creature`, `bytebeat`, `hum` (noise.scd), `grains`, `kick`, `keys`, `fm` |
 | `lib/motion.scd` | transport, tempo, lurch, recording |
 | `lib/gui/*.scd` | widgets (drawn knobs), browser, clip views, mixer + scenes, main window |
 

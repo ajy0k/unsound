@@ -7,8 +7,9 @@
 ~scaleName = ~scaleName ? \minor;
 ~detailMode = ~detailMode ? \clip;
 
-~keyHelp = "keys: A–; notes · Z/X oct · space play · 1–9 / ←→ tracks · ↑↓ vol (⇧ tempo) · tab clip/devices · "
-	++ "N new · M mute · R resync · B stutter · V freeze · Q lurch · C capture · [ ] scenes · , . bpm";
+~keyHelp = "keys: A–; notes · Z/X oct · space play · 1–9 / ←→ tracks · ↑↓ vol (⇧ tempo) · tab clip/devices/mods · "
+	++ "N new · / dice · I infect · \\ cure · M mute · R resync · B stutter · V freeze · Q lurch · C capture · [ ] scenes · , . bpm"
+	++ "   ·   right-click any knob = modulate it";
 
 ~transport = {
 	var oct = StaticText().font_(Font.monospace(10)).stringColor_(Color.grey(0.6));
@@ -23,6 +24,8 @@
 			~lbl.("key"),
 			~menu.((0..11), { ~key }, { |x| ~key = x }, ~noteNames),
 			~button.("lurch", { ~lurch.() }),
+			~button.("infect", { ~infect.(4) }),
+			~button.("cure", { ~cure.() }),
 			~toggle.("rec", { ~recording == true }, { |x| ~record.(x) }, Color(0.9, 0.2, 0.2)),
 			~toggle.("MIDI learn", { ~midiLearn }, { |x| ~midiLearn = x; if (x.not) { ~learnTarget = nil } }, Color.yellow),
 			~button.("save set", { Dialog.savePanel({ |p| ~saveSet.(p) }, nil, ~setsDir) }),
@@ -37,9 +40,10 @@
 
 ~devicePanel = { |t, d|
 	var dt = ~deviceTypes[d[\type]];
-	var knobs = dt[\params].collect { |p| ~dknob.(d, p, t[\color]) };
+	var knobs = [~qknob.(t, d)] ++ dt[\params].collect { |p| ~dknob.(t, d, p, t[\color]) };
 	var title = d[\label] ? d[\type].asString;
-	var extras = [~toggle.("on", { d[\on] }, { |x| if (x != d[\on]) { ~dbypass.(d) } })];
+	var extras = [~toggle.("on", { d[\on] }, { |x| if (x != d[\on]) { ~dbypass.(d) } }),
+		Button().canFocus_(false).fixedWidth_(34).states_([["dice"]]).action_({ ~diceDevice.(d) })];
 	var rows, panel;
 	if (d[\pinned] != true) {
 		extras = extras ++ [
@@ -70,17 +74,25 @@
 };
 
 ~detailFor = { |t|
-	var mode = if (t[\kind] == \inst) { ~detailMode } { \devices };
-	var content = if (mode == \clip) { View().layout_(~voiceTypes[t[\type]][\clip].value(t)) } { ~chain.(t) };
+	var mode = if (t[\kind] == \inst or: { ~detailMode == \mods }) { ~detailMode } { \devices };
+	var content = switch (mode)
+	{ \clip } { View().layout_(~voiceTypes[t[\type]][\clip].value(t)) }
+	{ \mods } { ~modsView.() }
+	{ ~chain.(t) };
 	var header = [StaticText().string_(t[\name].asString).font_(Font(Font.defaultSansFace, 16, true)).stringColor_(t[\color] ? Color.white)];
+	header = header ++ (if (t[\kind] == \inst) {
+		[~toggle.("clip", { ~detailMode == \clip }, { ~detailMode = \clip; ~refreshDetail.() })] } { [] }) ++ [
+		~toggle.("devices", { ~detailMode == \devices or: { t[\kind] != \inst and: { ~detailMode == \clip } } },
+			{ ~detailMode = \devices; ~refreshDetail.() }),
+		~toggle.("mods", { ~detailMode == \mods }, { ~detailMode = \mods; ~refreshDetail.() }, Color.white),
+		~button.("dice (/)", { ~diceTrack.(t[\name]) })
+	];
 	if (t[\kind] == \inst) {
 		header = header ++ [
-			~toggle.("clip", { ~detailMode == \clip }, { ~detailMode = \clip; ~refreshDetail.() }),
-			~toggle.("devices", { ~detailMode == \devices }, { ~detailMode = \devices; ~refreshDetail.() }),
 			~button.("new sound (N)", { ~repatch.(t[\name]) }),
 			~toggle.("sync", { t[\sync] != false }, { |x| ~tset.(t[\name], \sync, x); if (x) { ~resync.(t[\name]) } }, Color(0.4, 0.8, 1)),
 			~knob.("own bpm", [40, 300], { if (t[\sync] != false) { ~tempo } { t[\bpm] } },
-				{ |x| t[\sync] = false; ~tset.(t[\name], \bpm, x) }, 34, t[\color]),
+				{ |x| t[\sync] = false; ~tset.(t[\name], \bpm, x) }, 34, t[\color], "t:%:bpm".format(t[\name]), "% bpm".format(t[\name])),
 			~tknob.(t, \tempoDrift, [0, 1], "tempo drift", 34),
 			~tknob.(t, \speed, [0.25, 4, \exp], "speed", 34),
 			~button.("resync (R)", { ~resync.(t[\name]) }),
@@ -134,6 +146,7 @@
 		).spacing_(6)
 	).margins_(6).spacing_(6);
 	~buildDetail.();
+	~refreshMods = { if (~detailMode == \mods) { ~refreshDetail.() } };
 	~win.front;
 	~installKeys.();
 	~startTick.();
