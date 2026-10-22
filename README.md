@@ -6,6 +6,9 @@ tracks and a master chain. Things move by themselves, and every part is open for
 
 Written in plain SuperCollider (3.14), with no quarks.
 
+**[The manual](MANUAL.md)** covers every feature and where to find it (also as
+[a Word file](docs/unsound-manual.docx), screenshots included).
+
 ## Run it
 
 1. Open `play.scd` in SuperCollider.app.
