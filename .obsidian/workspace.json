@@ -11,10 +11,14 @@
             "id": "6dce4b9cea1a1399",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "wants.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "wants"
             }
           }
         ]
@@ -95,6 +99,7 @@
             "state": {
               "type": "backlink",
               "state": {
+                "file": "wants.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -113,6 +118,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
+                "file": "wants.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
@@ -155,6 +161,7 @@
             "state": {
               "type": "outline",
               "state": {
+                "file": "wants.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -183,6 +190,13 @@
   },
   "active": "6dce4b9cea1a1399",
   "lastOpenFiles": [
+    "CLAUDE.md",
+    "tools/smoke.scd",
+    "tools/run.sh",
+    "tools",
+    "README.md",
+    "wants.md",
+    "lib/presets.scd",
     "MANUAL.md",
     "docs/img/lfos.png",
     "lib/gui/lfoview.scd",

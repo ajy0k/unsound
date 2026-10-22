@@ -57,6 +57,7 @@
 ~descFor = { |item|
 	var how = "double-click: add to the focused track · drag: onto a track or before a device";
 	case
+	{ item[\kind] == \preset } { "your instrument: " ++ item[\name] ++ "\ndouble-click or drag: a new track, as you saved it · right-click: show / delete" }
 	{ item[\kind] == \inst } { (~descs[item[\type]] ? item[\type].asString) ++ "\ndouble-click or drag: new track" }
 	{ item[\item][1].isKindOf(Symbol) } { (~descs[item[\item][1]] ? item[\item][1].asString) ++ "\n" ++ how }
 	{ "a chain: " ++ item[\item][1].collect { |c| c[0] }.join(" → ") ++ "\n" ++ how }

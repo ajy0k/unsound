@@ -55,6 +55,42 @@
 
 // Apply a snapshot. `beats` > 0 morphs numbers there; `exact` also creates missing tracks and
 // removes tracks the snapshot doesn't have (used when loading a set).
+// One track's part of a snapshot (also used to load saved instruments). With beats > 0, numbers
+// are added to `glides` to morph there instead of jumping.
+~applyTrackState = { |t, ts, beats = 0, glides|
+	ts.keysValuesDo { |k, v|
+		case
+		{ [\name, \kind, \type, \devices, \sends].includes(k) } { }
+		{ k == \roll } { t[\roll] = v.deepCopy }
+		{ k == \lanes } { v.do { |lv, i| t[\lanes][i] !? { |ln| lv.keysValuesDo { |kk, vv| ln[kk] = vv.copy } } } }
+		{ k == \pat } { t[\pat] = v.copy; t[\live] = v.copy }
+		{ [\carWave, \modWave].includes(k) } { ~setWave.(t, k, v.copy) }
+		{ beats > 0 and: { v.isNumber } and: { t[k].isNumber } and: { v != t[k] } } {
+			glides.add([{ |x| ~tset.(t[\name], k, x) }, t[k], v]);
+		}
+		{ ~tset.(t[\name], k, v.copy) };
+	};
+	(ts[\sends] ? ()).keysValuesDo { |r, v|
+		var i = ~returnOrder.indexOf(r);
+		if (i.notNil) {
+			if (beats > 0) { glides.add([{ |x| ~send.(t[\name], r, x) }, t[\sends][i], v]) } { ~send.(t[\name], r, v) };
+		};
+	};
+	if (t[\kind] == \inst) { ~voiceTypes[t[\type]][\restored].value(t) };
+	if (~sameChain.(t, ts[\devices])) {
+		t[\devices].do { |d, i|
+			var target = ts[\devices][i];
+			target[\uid] !? { |u| d[\uid] = u; ~nextUid = (~nextUid ? 0).max(u) };
+			if (d[\on] != target[\on]) { ~dbypass.(d) };
+			target[\params].keysValuesDo { |k, v|
+				if (beats > 0 and: { v.isNumber } and: { v != d[\params][k] }) {
+					glides.add([{ |x| ~dparam.(d, k, x) }, d[\params][k], v]);
+				} { ~dparam.(d, k, v) };
+			};
+		};
+	} { ~setChain.(t[\name], ts[\devices]) };
+};
+
 ~applyState = { |state, beats = 0, exact = false|
 	var glides = List[], names;
 	if (exact) {
@@ -74,42 +110,7 @@
 	~key = state[\key];
 	if (beats > 0) { glides.add([{ |x| ~bpm.(x) }, ~tempo, state[\tempo]]) } { ~bpm.(state[\tempo]) };
 
-	state[\tracks].do { |ts|
-		var t = ~tracks[ts[\name]];
-		if (t.notNil) {
-			ts.keysValuesDo { |k, v|
-				case
-				{ [\name, \kind, \type, \devices, \sends].includes(k) } { }
-				{ k == \roll } { t[\roll] = v.deepCopy }
-				{ k == \lanes } { v.do { |lv, i| t[\lanes][i] !? { |ln| lv.keysValuesDo { |kk, vv| ln[kk] = vv.copy } } } }
-				{ k == \pat } { t[\pat] = v.copy; t[\live] = v.copy }
-				{ [\carWave, \modWave].includes(k) } { ~setWave.(t, k, v.copy) }
-				{ beats > 0 and: { v.isNumber } and: { t[k].isNumber } and: { v != t[k] } } {
-					glides.add([{ |x| ~tset.(t[\name], k, x) }, t[k], v]);
-				}
-				{ ~tset.(t[\name], k, v.copy) };
-			};
-			ts[\sends].keysValuesDo { |r, v|
-				var i = ~returnOrder.indexOf(r);
-				if (i.notNil) {
-					if (beats > 0) { glides.add([{ |x| ~send.(t[\name], r, x) }, t[\sends][i], v]) } { ~send.(t[\name], r, v) };
-				};
-			};
-			if (t[\kind] == \inst) { ~voiceTypes[t[\type]][\restored].value(t) };
-			if (~sameChain.(t, ts[\devices])) {
-				t[\devices].do { |d, i|
-					var target = ts[\devices][i];
-					target[\uid] !? { |u| d[\uid] = u; ~nextUid = (~nextUid ? 0).max(u) };
-					if (d[\on] != target[\on]) { ~dbypass.(d) };
-					target[\params].keysValuesDo { |k, v|
-						if (beats > 0 and: { v.isNumber } and: { v != d[\params][k] }) {
-							glides.add([{ |x| ~dparam.(d, k, x) }, d[\params][k], v]);
-						} { ~dparam.(d, k, v) };
-					};
-				};
-			} { ~setChain.(t[\name], ts[\devices]) };
-		};
-	};
+	state[\tracks].do { |ts| ~tracks[ts[\name]] !? { |t| ~applyTrackState.(t, ts, beats, glides) } };
 
 	// mods last, once every device they point at exists
 	state[\mods] !? { |ms| ~applyMods.(ms) };

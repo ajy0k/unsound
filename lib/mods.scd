@@ -300,10 +300,13 @@
 	}.asArray
 };
 
-// Replace every mod with saved ones. Mods on mods and "mod:" sources are re-linked to new ids.
-~applyMods = { |list|
-	var newIds = (), later = List[];
-	~cure.();
+// Replace every mod with saved ones.
+~applyMods = { |list| ~cure.(); ~addMods.(list) };
+
+// Add saved mods (without touching the others). Mods on mods and "mod:" sources are re-linked to
+// the new ids; a source pointing at an LFO that doesn't exist falls back to the mod's own shape.
+~addMods = { |list|
+	var newIds = (), later = List[], added = List[];
 	list.do { |ms|
 		var tg, m;
 		if (ms[\tid].beginsWith("m:")) { later.add(ms) } {
@@ -313,6 +316,7 @@
 				m[\home] = ms[\home];
 				m[\source] = ms[\source];
 				newIds[ms[\id]] = m;
+				added.add(m);
 			};
 		};
 	};
@@ -323,13 +327,15 @@
 			m[\home] = ms[\home];
 			m[\source] = ms[\source];
 			newIds[ms[\id]] = m;
+			added.add(m);
 		};
 	};
-	~mods.do { |m|
+	added.do { |m|
 		var src = m[\source].asString;
-		if (src.beginsWith("mod:")) {
-			m[\source] = newIds[src.drop(4).asInteger] !? { |x| "mod:" ++ x[\id] } ? \shape;
-		};
+		case
+		{ src.beginsWith("mod:") } { m[\source] = newIds[src.drop(4).asInteger] !? { |x| "mod:" ++ x[\id] } ? \shape }
+		{ src.beginsWith("lfo:") } { if (~lfoFor.(src.drop(4).asInteger).isNil) { m[\source] = \shape } };
 	};
 	~refreshMods.value;
+	added
 };

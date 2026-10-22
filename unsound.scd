@@ -46,6 +46,7 @@ if (s.serverRunning) {
 	"lib/wall.scd",
 	"lib/drones.scd",
 	"lib/scenes.scd",
+	"lib/presets.scd",
 	"lib/control.scd",
 	"lib/voices/grains.scd",
 	"lib/voices/kick.scd",

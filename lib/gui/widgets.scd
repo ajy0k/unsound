@@ -351,6 +351,7 @@
 ~dropOn = { |name, obj, index|
 	switch (obj[\kind])
 	{ \inst } { ~add.(obj[\type]) }
+	{ \preset } { ~loadInstrument.(obj[\path]) }
 	{ \item } { if (name.notNil) { ~addItem.(name, obj[\item], index) } };
 };
 

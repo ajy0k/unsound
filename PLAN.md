@@ -112,6 +112,8 @@ Then:
   Draw the shape (points + bendable curves, presets), sync or free rate, drag the handle onto any knob,
   drag the knob's outer ring for amount. An LFO's rate is a knob, so LFOs move LFOs. Saved with sets.
 - ✅ the wall respects solo (and has an S)
+- ✅ **your own instruments / chains**: save (by the track name) → MY INSTRUMENTS / MY CHAINS in the
+  browser, with effects and mods (ids remapped onto the new track); foldable browser categories
 - ✅ **session recording**: everything, always, to `~/Music/unsound/sessions/` in 30-minute parts
   (2 s overlap, 24-bit); keep also drops a marker into the session's .txt
 

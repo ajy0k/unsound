@@ -23,6 +23,11 @@
 		["takeover  /  hold '", "push the focused track toward infinity while everything else ducks · ∞ = all the way while held"],
 		["the wall", "the background layer: pick a wall (crossfades), fade it in / out, shape it with band"],
 		["digital (browser)", "bitmask, aliaser, bins, codec, overflow, skip: things a pedal can't do"]]],
+	["your instruments", [
+		["save  (by the track's name)", "name it: the instrument, its effects and mods go into the browser, under MY INSTRUMENTS"],
+		["just the effects", "(tick it in the save dialog) saves a chain instead, under MY CHAINS; drop it on any track"],
+		["right-click your own", "show in Finder / delete"],
+		["browser headers", "click to fold / unfold a category"]]],
 	["LFOs (the row under the pads)", [
 		["drag", "drag an LFO's coloured handle onto any knob: it modulates that knob"],
 		["outer ring of a knob", "drag it up / down (or cmd-drag the knob) = how much the LFO / mod moves it"],
@@ -192,7 +197,8 @@
 		~toggle.("devices", { ~detailMode == \devices or: { t[\kind] != \inst and: { ~detailMode == \clip } } },
 			{ ~detailMode = \devices; ~refreshDetail.() }),
 		~toggle.("mods", { ~detailMode == \mods }, { ~detailMode = \mods; ~refreshDetail.() }, Color.white),
-		~button.("dice (/)", { ~diceTrack.(t[\name]) })
+		~button.("dice (/)", { ~diceTrack.(t[\name]) }),
+		~button.("save", { ~saveDialog.(t) })
 	];
 	if (t[\kind] == \inst) {
 		header = header ++ [

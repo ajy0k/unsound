@@ -89,6 +89,22 @@ broken as you like.
 
 ---
 
+## 4½. Your own instruments and chains
+
+Like Ableton presets: click **save** next to the track's name (top of the focus column, or in the
+studio window's header), type a name, **save**.
+
+- An **instrument** keeps everything: the instrument and all its settings (patterns, drawn waves,
+  loaded files, sends), its whole effect chain, and its mods (mods on mods too; an LFO link is kept
+  if that LFO exists when you load it). It appears in the browser under **MY INSTRUMENTS**:
+  double-click or drag it for a new track, exactly as you saved it.
+- Tick **just the effects** to save the chain instead (from a return or the master, that's all it
+  can save). It appears under **MY CHAINS**: drop it on any track.
+- **Right-click** one of yours: **show in Finder** / **delete**. They're files in
+  `~/Music/unsound/instruments/` and `~/Music/unsound/chains/`.
+
+**Browser categories fold**: click a header (▾ / ▸). It remembers which ones you folded.
+
 ## 5. Pop-out windows
 
 Click **⧉** on any device, or **⧉** next to the track name in the focus column, and it opens in

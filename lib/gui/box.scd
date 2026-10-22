@@ -246,7 +246,8 @@
 			[ScrollView().hasHorizontalScroller_(false).canvas_(View().layout_(VLayout(~boxScreen.(t)).margins_(0))), stretch: 1],
 			View().fixedWidth_(250).layout_(VLayout(
 				HLayout(StaticText().string_(t[\name].asString).font_(Font(Font.defaultSansFace, 14, true)).stringColor_(t[\color] ? Color.white),
-					nil, ~button.("⧉", { ~popTrack.(t) }).fixedWidth_(22), ~bbutton.("dice", "btn:dice"), ~bbutton.("new", "btn:new")).spacing_(2),
+					nil, ~button.("save", { ~saveDialog.(t) }).toolTip_("save this instrument (or chain) to the browser, under MY INSTRUMENTS / MY CHAINS"),
+					~button.("⧉", { ~popTrack.(t) }).fixedWidth_(22), ~bbutton.("dice", "btn:dice"), ~bbutton.("new", "btn:new")).spacing_(2),
 				if ([\inst, \wall].includes(t[\kind])) { ~scopeView.(t).fixedHeight_(70) } { View().fixedHeight_(1) },
 				if (t[\kind] == \inst) { ~soRow.(t, 50) } { View().fixedHeight_(1) },
 				~boxEncHolder,

@@ -154,6 +154,8 @@ themselves, and have an XY pad in their clip view.
 | `lib/voices/*.scd` | instruments: `creature`, `bytebeat`, `hum` (noise.scd), `noise` (noisegen.scd), `deck`, `osc3`, `atari`, `drums`, `grains`, `kick`, `keys`, `fm` |
 | `lib/motion.scd` | transport, tempo, lurch, recording |
 | `lib/gui/*.scd` | widgets (drawn knobs, sliders, sometimes), browser, clip views, mixer + scenes, EQ Eight panel, the box, main window |
+| `tools/` | `run.sh` + `smoke.scd`: a headless test (boots silently, plays, prints levels) |
+| `CLAUDE.md` | notes for working on the code (architecture, gotchas, dev log) |
 
 To add an instrument, add a file to `lib/voices/` that registers `~voiceTypes[\name]` (copy one of
 the existing ones), then add it to the list in `unsound.scd`. Give it `pages` for the box's
