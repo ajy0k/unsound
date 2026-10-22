@@ -57,6 +57,12 @@
 	},
 	note: ~keyNote,
 	mover: { |t| ~melodicMover.(t, ~keyNote) },
+	pages: { |t| [
+		~pg.(t, "sample", [[\cycle, [0.3, 30, \exp], "cycle ms"], [\scan, [0, 1]], [\drift, [0, 1]], [\tune, [-12, 12, \lin, 1]],
+			[\atk, [0.001, 2, \exp], "attack"], [\rel, [0.01, 4, \exp], "release"], [\gate, [0.05, 2, \exp], "length"], [\spread, [0, 1]]]),
+		~pg.(t, "filter·play", [[\cutoff, [60, 18000, \exp]], [\res, [0, 1]], [\fenv, [0, 1], "f env"], [\busy, [0, 1]],
+			[\repeats, [1, 8, \lin, 1]], [\repChance, [0, 1], "repeat %"], [\mutate, [0, 1]], [\octave, [-3, 3, \lin, 1]]])
+	] },
 	clip: { |t| ~rollPanel.(t) },
 	device: { |t|
 		[

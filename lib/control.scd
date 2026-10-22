@@ -7,7 +7,8 @@
 //   1–9          select instrument track 1–9;  0 selects master
 //   ← / →        previous / next track
 //   ↑ / ↓        selected track volume up / down   (with shift: tempo of that track up / down)
-//   tab          switch Clip / Devices
+//   tab          box: next page (shift-tab: previous) · studio: Clip / Devices / Mods
+//   `            switch between the box and the studio window
 //   N  new sound on the selected track     M  mute selected     R  resync selected
 //   /  dice the selected track (instrument + devices)     I  infect: scatter mods     \  cure: remove all mods
 //   B  hold: stutter every stutter device on the master while held
@@ -72,7 +73,10 @@
 	{ key == 16r1000015 } {
 		if (mod.isShift) { ~nudgeTempo.(t, 1 / 1.03) } { ~tset.(~selected, \level, t[\level] / 1.12) }
 	}
+	{ key == 16r1000001 and: { ~viewMode == \box } } { ~boxPageStep.(1) }
+	{ key == 16r1000002 and: { ~viewMode == \box } } { ~boxPageStep.(-1) }
 	{ key == 16r1000001 } { ~detailMode = switch (~detailMode) { \clip } { \devices } { \devices } { \mods } { \clip }; ~refreshDetail.() }
+	{ char == $` } { ~viewMode = if (~viewMode == \box) { \studio } { \box }; ~refreshGui.() }
 	{ char == $? } { { ~showHelp.() }.defer }
 	{ char == $n } { ~repatch.(~selected) }
 	{ char == $/ } { ~pushHistory.(); ~diceTrack.(~selected) }
@@ -193,13 +197,13 @@
 
 // ---------------------------------------------------------------- saving MIDI maps
 
-// Knob mappings are saved by the knob's id; toggles and pads are not saved (yet).
+// Mappings are saved by the target's id: knobs, the box's encoders and buttons. Plain toggles aren't (yet).
 ~midiState = {
 	var out = List[];
 	~midiMap.keysValuesDo { |k, m|
 		var tg = m[\target];
-		if (tg[\tid].notNil and: { tg[\spec].notNil }) {
-			out.add((key: k, tid: tg[\tid], spec: tg[\spec].asCompileString, relative: m[\relative], button: m[\button]));
+		if (tg[\tid].notNil) {
+			out.add((key: k, tid: tg[\tid], spec: tg[\spec] !? { |x| x.asCompileString }, relative: m[\relative], button: m[\button]));
 		};
 	};
 	out.asArray
@@ -207,7 +211,7 @@
 
 ~applyMidi = { |list|
 	list.do { |e|
-		var tg = ~resolveTarget.(e[\tid], e[\spec].interpret);
+		var tg = ~resolveTarget.(e[\tid], e[\spec] !? { |x| x.interpret });
 		if (tg.notNil) { ~midiMap[e[\key]] = (target: tg, relative: e[\relative], button: e[\button]) };
 	};
 };

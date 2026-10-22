@@ -125,7 +125,7 @@
 	if (t[\kind] != \master) {
 		t[\devices].do { |d|
 			if (d[\pinned] != true) {
-				~deviceTypes[d[\type]][\params].do { |p| if (p[\key] != \mix) { out.add(~deviceTarget.(t, d, p)) } };
+				~deviceTypes[d[\type]][\params].do { |p| if (p[\key] != \mix and: { p[\dice] != false }) { out.add(~deviceTarget.(t, d, p)) } };
 				out.add(~mysteryTarget.(t, d));
 			};
 		};
@@ -147,7 +147,7 @@
 	~targetsOf.(t).reject { |tg| ~modFor.(tg[\tid]).notNil }.scramble.keep(n).do { |tg| ~addMod.(tg) };
 };
 ~infectDevice = { |t, d|
-	var pool = ~deviceTypes[d[\type]][\params].reject { |p| p[\key] == \mix }.collect { |p| ~deviceTarget.(t, d, p) }
+	var pool = ~deviceTypes[d[\type]][\params].reject { |p| p[\key] == \mix or: { p[\dice] == false } }.collect { |p| ~deviceTarget.(t, d, p) }
 		++ [~mysteryTarget.(t, d)];
 	~addMod.(pool.choose);
 };
@@ -172,7 +172,7 @@
 
 // Each device gets a hidden map: the "?" knob sweeps 2–4 of its params between random points.
 ~rollMystery = { |d|
-	var params = ~deviceTypes[d[\type]][\params].reject { |p| p[\key] == \mix };
+	var params = ~deviceTypes[d[\type]][\params].reject { |p| p[\key] == \mix or: { p[\dice] == false } };
 	d[\mystery] = params.scramble.keep(rrand(2, 4).min(params.size)).collect { |p|
 		[p[\key], 1.0.rand, 1.0.rand]
 	};
@@ -199,7 +199,7 @@
 ~diceDevice = { |d|
 	if (d[\pinned] != true) {
 		~deviceTypes[d[\type]][\params].do { |p|
-			if (p[\key] != \mix) {
+			if (p[\key] != \mix and: { p[\dice] != false }) {
 				~setOrHome.("d:%:%".format(d[\uid], p[\key]), p[\spec], p[\spec].map(1.0.rand), { |x| ~dparam.(d, p[\key], x) });
 			};
 		};
@@ -242,7 +242,12 @@
 	{ "d" } {
 		~tracks.do { |x| x[\devices].do { |y| if (y[\uid] == parts[1].asInteger) { t = x; d = y } } };
 		d !? {
-			if (parts[2] == "?") { ~mysteryTarget.(t, d) } {
+			case
+			{ parts[2] == "?" } { ~mysteryTarget.(t, d) }
+			{ parts[2] == "soJump" } {
+				(tid: tid, name: "% jump".format(d[\type]), spec: ControlSpec(0, 1), get: { d[\params][\soJump] ? 0 },
+					set: { |x| d[\params][\soJump] = x })
+			} {
 				p = ~deviceTypes[d[\type]][\params].detect { |q| q[\key] == parts[2].asSymbol };
 				p !? { ~deviceTarget.(t, d, p) }
 			}
@@ -259,6 +264,12 @@
 			(tid: tid, name: "% send %".format(t[\name], ret), spec: ControlSpec(0, 1),
 				get: { (~returnOrder.indexOf(ret) !? { |j| t[\sends][j] }) ? 0 }, set: { |x| ~send.(t[\name], ret, x) })
 		}
+	}
+	{ "box" } { ~boxTargets[parts[1].asInteger] }
+	{ "btn" } { ~btnTarget.(tid) }
+	{ "g" } {
+		(tid: tid, name: parts[1], spec: ControlSpec(0, 1), get: { ~events[("so" ++ parts[1].capitalize).asSymbol] ? 0 },
+			set: { |x| ~events[("so" ++ parts[1].capitalize).asSymbol] = x })
 	}
 	{ ~globalTargets.()[tid] };
 };

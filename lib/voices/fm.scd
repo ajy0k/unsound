@@ -84,6 +84,12 @@
 	},
 	note: ~fmNote,
 	mover: { |t| ~melodicMover.(t, ~fmNote) },
+	pages: { |t| [
+		~pg.(t, "operators", [[\ratio, [0.125, 16, \exp]], [\index, [0, 12]], [\idxDecay, [0.01, 2, \exp], "idx decay"],
+			[\ratio2, [0.125, 16, \exp], "op2 ratio"], [\index2, [0, 8], "op2 index"], [\drift, [0, 1]], [\tune, [-12, 12, \lin, 1]], [\spread, [0, 1]]]),
+		~pg.(t, "amp·play", [[\atk, [0.001, 2, \exp], "attack"], [\rel, [0.01, 4, \exp], "release"], [\gate, [0.05, 2, \exp], "length"],
+			[\cutoff, [60, 18000, \exp]], [\busy, [0, 1]], [\repChance, [0, 1], "repeat %"], [\mutate, [0, 1]], [\octave, [-3, 3, \lin, 1]]])
+	] },
 	clip: { |t| ~rollPanel.(t) },
 	device: { |t|
 		[

@@ -9,7 +9,7 @@
 // Lighter rows are in the scale; the brightest rows are the key's root.
 ~rollView = { |t|
 	var rows = 24, drag;
-	var view = UserView().minHeight_(240).canFocus_(false).background_(Color.grey(0.1));
+	var view = UserView().minHeight_(120).canFocus_(false).background_(Color.grey(0.1));
 	var cell = { |x, y|
 		var roll = t[\roll], b = view.bounds;
 		[(x / (b.width / roll[\len])).floor.asInteger.clip(0, roll[\len] - 1),
@@ -192,6 +192,14 @@
 	)
 };
 
+// ---------------------------------------------------------------- every so often
+
+// All of a track's sometimes, two per row.
+~soRow = { |t, width = 90|
+	VLayout(*(~soList.(t).collect { |so| ~tsometimes.(t, so[0], so[1], width) }.clump(2)
+		.collect { |row| HLayout(*(row ++ [nil])).spacing_(8) })).spacing_(2).margins_(0)
+};
+
 // ---------------------------------------------------------------- drones: XY pad + big knobs
 
 // Drag to move two params at once. The dot shows the live values, so modulation makes it crawl.
@@ -199,7 +207,7 @@
 	var params = ~voiceTypes[t[\type]][\params];
 	var px = params.detect { |p| p[\key] == xk }, py = params.detect { |p| p[\key] == yk };
 	var trail = List[], c = t[\color];
-	var view = UserView().minSize_(Size(380, 320)).canFocus_(false).background_(Color.grey(0.07));
+	var view = UserView().minSize_(Size(160, 100)).canFocus_(false).background_(Color.grey(0.07));
 	var put = { |tid, spec, key, u|
 		var m = ~modFor.(tid);
 		if (m.notNil) { m[\home] = u } { ~tset.(t[\name], key, spec.map(u)) };
@@ -243,7 +251,7 @@
 			}), ~lbl.("right-click a knob to make it move by itself")),
 			*(it[\params].collect { |p| ~tknob.(t, p[\key], p[\spec], p[\label], 58) }
 				.clump(4).collect { |row| HLayout(*(row ++ [nil])) }
-				++ [HLayout(~tknob.(t, \busy, [0, 1], "spasms", 58), nil), nil])
+				++ [~soRow.(t), nil])
 		), stretch: 3]
 	)
 };
@@ -279,7 +287,7 @@
 
 // ---------------------------------------------------------------- drums
 
-~laneH = 52;
+~laneH = 44;
 
 // One row per lane: click a cell to toggle a hit, right-click to end the lane there (its length),
 // drag across to paint. Darker cells are past the lane's end. Outline = mutation added, dot = removed.
@@ -335,20 +343,37 @@
 
 ~laneRow = { |t, ln, i|
 	var k = { |key, label|
-		~knob.(label, ~laneSpecs[key], { ln[key] }, { |x| ln[key] = x }, 20, t[\color],
+		~knob.(label, ~laneSpecs[key], { ln[key] }, { |x| ln[key] = x }, 14, t[\color],
 			"l:%:%:%".format(t[\name], i, key), "% % %".format(t[\name], ln[\name], key))
 	};
 	View().fixedHeight_(~laneH).layout_(HLayout(
 		Button().canFocus_(false).fixedWidth_(56).states_([[ln[\name].asString, Color.black, t[\color]], [ln[\name].asString, Color.grey(0.7), Color.grey(0.25)]])
 			.value_(ln[\mute].binaryValue).action_({ |b| ln[\mute] = b.value == 1 }),
-		~toggle.("smp", { ln[\src] == \sample }, { |x|
-			ln[\src] = if (x) { ln[\grain] = ln[\grain] ?? { ~pickDrumGrain.() }; \sample } { \synth };
-		}, Color(0.5, 0.8, 1)).fixedWidth_(36),
+		~srcButton.(t, ln),
 		Button().canFocus_(false).fixedWidth_(30).states_([["gen"]]).action_({ ~genLane.(ln, i, t[\style] ? \euclid) }),
-		k.(\level, "lvl"), k.(\pitch, "pitch"), k.(\decay, "dec"), k.(\tone, "tone"),
+		Button().canFocus_(false).fixedWidth_(30).states_([["rnd"]]).action_({ ln[\src] = \sample; ln[\grain] = ~pickDrumGrain.(t, ln) }),
+		Button().canFocus_(false).fixedWidth_(34).states_([["load"]])
+			.action_({ Dialog.openPanel({ |p| ~drumLoad.(t, ln, p) }) }),
+		k.(\level, "lvl"), k.(\pitch, "pitch"), k.(\decay, "dec"), k.(\tone, "tone"), k.(\ratio, "fm rat"),
 		k.(\mutate, "mut"), k.(\busy, "busy"), k.(\chance, "prob"), k.(\ratchet, "rat"), k.(\hop, "hop"),
 		nil
 	).margins_(0).spacing_(0))
+};
+
+// Cycles a lane's sound: synth → fm → sample.
+~srcButton = { |t, ln|
+	var colors = (synth: Color.grey(0.3), fm: Color(0.62, 0.48, 0.95), sample: Color(0.5, 0.8, 1));
+	var b = Button().canFocus_(false).fixedWidth_(40).font_(Font(Font.defaultSansFace, 9));
+	var show = { b.states = [[(synth: "syn", fm: "fm", sample: "smp")[ln[\src]] ? "?", Color.black, colors[ln[\src]] ? Color.grey]] };
+	var last;
+	b.action = {
+		ln[\src] = ~laneSources.wrapAt((~laneSources.indexOf(ln[\src]) ? 0) + 1);
+		if (ln[\src] == \sample and: { ln[\grain].isNil }) { ln[\grain] = ~pickDrumGrain.(t, ln) };
+		show.();
+	};
+	show.();
+	~bindings.add({ if (b.isClosed) { false } { if (last != ln[\src]) { last = ln[\src]; show.() }; true } });
+	b
 };
 
 ~drumClip = { |t|
@@ -360,10 +385,14 @@
 			~button.("keep variation", { t[\lanes].do { |ln| ln[\pat] = ln[\live].copy } }),
 			~button.("clear", { t[\lanes].do { |ln| ln[\pat] = 0 ! 32; ln[\live] = 0 ! 32 } }),
 			~button.("new samples", { ~repatch.(t[\name]) }),
+			~button.("long sample…", { Dialog.openPanel({ |p| ~drumLoad.(t, nil, p) }) }),
+			~button.("all fm", { t[\lanes].do { |ln| ln[\src] = \fm } }),
+			~button.("all synth", { t[\lanes].do { |ln| ln[\src] = \synth } }),
 			~tknob.(t, \swing, [0, 0.4], "swing", 30),
 			~tknob.(t, \speed, [0.25, 4, \exp], "speed", 30),
 			~lbl.("click = hit · drag = paint · right-click = lane length")
 		),
+		~soRow.(t),
 		HLayout(
 			VLayout(*(t[\lanes].collect { |ln, i| ~laneRow.(t, ln, i) } ++ [nil])).spacing_(0),
 			[VLayout(~drumGrid.(t), nil), stretch: 1]

@@ -28,7 +28,7 @@
 // range as a thin outer arc; turning it moves the home the mod swings around.
 // In MIDI learn mode, touching it makes it the learn target (yellow ring).
 // `tid` is a stable id (so mods survive the GUI being rebuilt); `name` labels it in the mods view.
-~knob = { |label, spec, get, set, size = 40, color, tid, name|
+~knob = { |label, spec, get, set, size = 40, color, tid, name, learnAs|
 	var w = size + 18, view = UserView().fixedSize_(Size(w, size + 30)).canFocus_(false);
 	var val, def, touched = 0, y0, v0, center, target, change;
 	spec = spec.asSpec;
@@ -75,13 +75,13 @@
 		Pen.strokeColor = Color.grey(0.92);
 		Pen.line(c + (Point(a.cos, a.sin) * (r * 0.25)), c + (Point(a.cos, a.sin) * (r - 5)));
 		Pen.stroke;
-		if (~learnTarget === target) {
+		if (~learnTarget === (learnAs ? target)) {
 			Pen.strokeColor = Color.yellow;
 			Pen.width = 2;
 			Pen.addOval(Rect.aboutPoint(c, r + 2, r + 2));
 			Pen.stroke;
 		};
-		if (~isMapped.(target)) {
+		if (~isMapped.(learnAs ? target)) {
 			Pen.fillColor = Color(0.4, 0.8, 1);
 			Pen.addOval(Rect.aboutPoint(Point(w - 6, 18), 3, 3));
 			Pen.fill;
@@ -92,7 +92,7 @@
 		case
 		{ bn == 1 or: { mod.isAlt } } { ~toggleMod.(target); y0 = nil; uv.refresh }
 		{ clicks == 2 } { change.(def) }
-		{ y0 = y; v0 = (~modFor.(target[\tid]) !? { |m| m[\home] }) ? val; ~learn.(target) };
+		{ y0 = y; v0 = (~modFor.(target[\tid]) !? { |m| m[\home] }) ? val; ~learn.(learnAs ? target) };
 		nil
 	};
 	view.mouseMoveAction = { |uv, x, y, mod|
@@ -116,6 +116,78 @@
 		}
 	});
 	view
+};
+
+// A slider with no numbers. Drag (or click) along it; right-click gives it a modulator, like a knob.
+// `glow` (optional function) returns 0..1 to light it up (sometimes uses it to flash when it fires).
+~bar = { |spec, get, set, color, tid, name, width = 90, glow|
+	var view = UserView().fixedHeight_(18).minWidth_(width).canFocus_(false), val = 0, touched = 0, target, change, dragging = false;
+	spec = spec.asSpec;
+	color = color ? ~accent;
+	target = (tid: tid, name: name, spec: spec, get: get, set: set);
+	val = spec.unmap(get.value ? spec.default);
+	change = { |x|
+		var m = ~modFor.(tid);
+		val = x.clip(0, 1);
+		touched = Main.elapsedTime;
+		if (m.notNil) { m[\home] = val } { set.(spec.map(val)) };
+		view.refresh;
+	};
+	view.drawFunc = { |uv|
+		var b = uv.bounds.moveTo(0, 0), m = ~modFor.(tid), g = (glow.value ? 0).clip(0, 1);
+		Pen.fillColor = Color.grey(0.13).blend(color, g * 0.5);
+		Pen.fillRect(b);
+		Pen.fillColor = color.copy.alpha_(0.85);
+		Pen.fillRect(Rect(0, 3, b.width * val, b.height - 6));
+		if (m.notNil) {
+			Pen.fillColor = Color(1, 1, 1, 0.35);
+			Pen.fillRect(Rect(b.width * (m[\home] - m[\depth].abs).clip(0, 1), 0,
+				b.width * ((m[\home] + m[\depth].abs).clip(0, 1) - (m[\home] - m[\depth].abs).clip(0, 1)), 2));
+		};
+		if (g > 0.05) {
+			Pen.strokeColor = Color.white.alpha_(g);
+			Pen.width = 2;
+			Pen.strokeRect(b.insetBy(1, 1));
+		};
+		if (~learnTarget === target) { Pen.strokeColor = Color.yellow; Pen.width = 2; Pen.strokeRect(b.insetBy(1, 1)) };
+		if (~isMapped.(target)) { Pen.fillColor = Color(0.4, 0.8, 1); Pen.fillOval(Rect(b.width - 7, 2, 5, 5)) };
+	};
+	view.mouseDownAction = { |uv, x, y, mod, bn, clicks|
+		case
+		{ bn == 1 or: { mod.isAlt } } { ~toggleMod.(target); uv.refresh }
+		{ clicks == 2 } { change.(0) }
+		{ dragging = true; ~learn.(target); change.(x / uv.bounds.width) };
+		nil
+	};
+	view.mouseMoveAction = { |uv, x| if (dragging) { change.(x / uv.bounds.width) }; nil };
+	view.mouseUpAction = { dragging = false; nil };
+	view.mouseWheelAction = { |uv, x, y, mod, dx, dy| change.(val + (dy.sign * 0.02)); true };
+	~animated.add({
+		var nv;
+		if (view.isClosed) { false } {
+			if (Main.elapsedTime - touched > 0.5) {
+				nv = get.value;
+				if (nv.isNumber) { val = spec.unmap(nv) };
+			};
+			view.refresh;
+			true
+		}
+	});
+	view
+};
+
+// "Every so often": a button that does it now, and a slider (no numbers) for how often.
+~sometimesW = { |label, id, get, set, color, width = 90|
+	var glow = { (~soFor.(id) !? { |e| 1 - ((Main.elapsedTime - e[\last]) / 0.6) } ? 0).max(0) };
+	var b = Button().canFocus_(false).font_(Font(Font.defaultSansFace, 10))
+		.states_([[label, Color.grey(0.85), Color.grey(0.24)]])
+		.action_({ ~soFor.(id) !? { |e| ~soFire.(e) } });
+	HLayout(b, ~bar.([0, 1], get, set, color, id, label, width, glow)).spacing_(2).margins_(0)
+};
+
+// Sometimes bound to a track key.
+~tsometimes = { |t, key, label, width = 90|
+	~sometimesW.(label, "t:%:%".format(t[\name], key), { t[key] }, { |x| ~tset.(t[\name], key, x) }, t[\color], width)
 };
 
 // Knob bound to a track setting.
@@ -211,8 +283,9 @@
 	~tick.stop;
 	~tick = Routine({
 		loop {
-			~bindings = ~bindings.select { |f| f.value };
-			~animated = ~animated.select { |f| f.value };
+			// in place: select/reject hand back Arrays, and adding to those can silently drop things
+			~bindings.removeAllSuchThat { |f| f.value.not };
+			~animated.removeAllSuchThat { |f| f.value.not };
 			0.05.wait;
 		}
 	}).play(AppClock);

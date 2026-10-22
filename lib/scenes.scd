@@ -15,7 +15,8 @@
 // Settings that are runtime state, not something you set.
 ~runtimeKeys = [\id, \meter, \meterShow, \pos, \abs, \deg, \cursor, \head, \lastBuf, \lastPos, \tdrift,
 	\toneOff, \barAcc, \color, \heard, \routine, \ramps, \strip, \grp, \src, \fxg, \bus, \inBus, \fbBus,
-	\carBuf, \modBuf, \devices, \sends, \live, \held, \voice];
+	\carBuf, \modBuf, \devices, \sends, \live, \held, \voice, \motor, \loadedPath, \loading, \deckBuf, \slab,
+	\jumpBy, \jumpUntil, \lastRate];
 
 ~storable = { |v|
 	v.isNumber or: { v.isKindOf(Symbol) } or: { v.isKindOf(Boolean) }
@@ -31,7 +32,7 @@
 	if (t[\lanes].notNil) {
 		st[\lanes] = t[\lanes].collect { |ln|
 			var e = ();
-			ln.keysValuesDo { |k, v| if ([\grain, \pos, \flash].includes(k).not) { e[k] = v.copy } };
+			ln.keysValuesDo { |k, v| if ([\grain, \pos, \flash, \slab].includes(k).not) { e[k] = v.copy } };
 			e
 		};
 	};
@@ -94,6 +95,7 @@
 					if (beats > 0) { glides.add([{ |x| ~send.(t[\name], r, x) }, t[\sends][i], v]) } { ~send.(t[\name], r, v) };
 				};
 			};
+			if (t[\kind] == \inst) { ~voiceTypes[t[\type]][\restored].value(t) };
 			if (~sameChain.(t, ts[\devices])) {
 				t[\devices].do { |d, i|
 					var target = ts[\devices][i];

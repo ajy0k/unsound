@@ -121,6 +121,12 @@
 			~vwait.(t, wait);
 		}
 	},
+	pages: { |t| [
+		~pg.(t, "grains", [[\busy, [0, 1]], [\grid, [0.0625, 1, \exp]], [\size, [5, 2000, \exp], "size ms"], [\sizeVar, [0, 1], "size var"],
+			[\pitch, [-24, 24, \lin, 1]], [\pitchVar, [0, 1], "pitch var"], [\reverse, [0, 1]], [\sharp, [0, 1], "click"]]),
+		~pg.(t, "gestures", [[\wSingle, [0, 1], "single"], [\wCloud, [0, 1], "cloud"], [\cloud, [2, 60, \lin, 1], "cloud n"],
+			[\wRatchet, [0, 1], "ratchet"], [\repeats, [2, 16, \lin, 1]], [\wSmear, [0, 1], "smear"], [\scan, [-2, 2]], [\hop, [0, 1], "hop"]])
+	] },
 	clip: { |t|
 		VLayout(
 			~row.(~lbl.("source"), ~tmenu.(t, \source, [\corpus, \file], ["whole folder", "stick to one file"]),

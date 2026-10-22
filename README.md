@@ -12,6 +12,26 @@ Written in plain SuperCollider (3.14), with no quarks.
 2. Set `~folder` in the first block and evaluate it (Cmd-Return).
 3. Press **play**.
 
+## The box
+
+The window opens as **the box**, built around focus. The browser is on the left as usual. Pads along
+the top (one per track: click = focus, double-click = mute, right-click = solo). Under them, a small
+screen for the focused track (its XY pad, drum grid, roll or tape) with a narrow column beside it:
+a scope, its every-so-often sliders, and **8 encoders** mapped to the track's current page (pages are
+made automatically: the instrument's knobs, mix, then one page per device; **tab** / shift-tab or
+◀ ▶ change page). Below that, the big part: the instrument and its whole effect chain in a row.
+Drag the little handle between the screen and the chain to change the split. **`** switches to the
+studio window (mixer, mods) and back.
+
+MIDI learn on an encoder maps *the encoder*, so 8 knobs on any controller follow focus everywhere.
+◀ ▶ page, ◀ ▶ track, glide, cut, dice and new sound learn the same way (pads or buttons).
+
+**Every so often:** wherever you see a small button next to a slider with no numbers, the button
+does it now and the slider says how often it happens by itself, at random intervals (empty = never,
+full = a few times a second). Every instrument has some (spasm, skip, tape stop, fill, sfx, new
+sound…), every device has "jump" (throws its mystery knob), and the top bar has glide and cut.
+Right-click the slider to modulate it.
+
 ## Playing it without the mouse
 
 Press **?** (or the ? button, top right) for every shortcut.
@@ -26,7 +46,7 @@ MIDI: notes play the selected track. Turn on **MIDI learn**, touch any knob or t
 then move a control on your keyboard / knob box / DJ controller. Jog wheels (relative encoders)
 are detected and nudge instead of jump.
 
-## The window
+## The studio window (`)
 
 - **Browser** (left): instruments, ~50 effect presets in categories, and whole chains.
   **Double-click** to add to the end of the selected track's chain, or drag onto a mixer strip,
@@ -74,6 +94,32 @@ automatic movement; it's yours to play by hand.
 (right-click a cell to end the lane there), generated patterns in five styles (four, broken,
 euclid, sparse, chaos), mutation that drifts home, and a synth or sampled sound per lane.
 
+**noise:** an extensible noise generator: two layers, each sweeping continuously through a list of
+noise kinds (white, pink, brown, bits, velvet, dust, crackle, rain, wind, radio, metal, logistic,
+henon, gendy…), then filter, drive, pulse gate, width. Add a kind with one line in `~noiseKinds`
+(`lib/voices/noisegen.scd`).
+
+**deck:** a tape player. **open…** any audio file or take one from the folder; it loops the region
+forever. Speed runs from −8× to 8× through a motor with **inertia** (tape stops, spin backs), plus
+wow, flutter, **chew** (skips and drop-outs), drive, age and hiss. Click the waveform to move the
+playhead, drag to pick the loop.
+
+**osc3:** a 3xOsc: three oscillators (sine/tri/saw/square/noise); osc 2 and 3 mix, ring, FM or AM
+into osc 1; a pitch LFO; and an `lfo →` menu that puts a modulator on any of its knobs.
+
+**atari:** the Atari 2600's TIA chip. Two channels with the real AUDC (16 waveforms from the
+chip's poly4/poly5/poly9 counters), AUDF and AUDV registers at the chip's clock. Notes snap to the
+nearest AUDF, so it's out of tune like the real thing; channel B makes sound effects every so often.
+
+**drums** lanes cycle between **syn / fm / smp**; **rnd** picks a random slice, **load** loads your
+own sample, and **long sample…** loads one long file the whole kit slices from (at its onsets).
+
+**EQ Eight** (filter category): eight bands like Ableton's. Drag a dot for freq/gain, scroll for Q,
+double-click for on/off; pick a band's type below. The curve is the real response.
+
+**VST:** if the [VSTPlugin](https://git.iem.at/pd/vstplugin) extension is installed, a `vst plugin`
+device appears under dynamics (experimental, untested here).
+
 **Noise instruments:** `creature` (chaotic oscillators tangled together), `bytebeat` (8-bit integer
 formulas), and `hum` (a self-oscillating feedback network). They drone continuously, spasm by
 themselves, and have an XY pad in their clip view.
@@ -89,15 +135,17 @@ themselves, and have an XY pad in their clip view.
 | `lib/devices.scd` | insert devices and their movers |
 | `lib/melody.scd` | piano roll, wander mode, repeats, mutation |
 | `lib/mods.scd` | modulators (and mods on mods), infect, cure, dice, mystery knobs |
+| `lib/sometimes.scd` | "every so often": random-interval triggers on tracks, devices and the transport |
 | `lib/drones.scd` | shared shape of the continuous noise instruments |
 | `lib/scenes.scd` | scenes, morphing, song, save/load sets |
 | `lib/control.scd` | computer keyboard and MIDI (notes, learn, DJ controllers) |
-| `lib/voices/*.scd` | instruments: `creature`, `bytebeat`, `hum` (noise.scd), `drums`, `grains`, `kick`, `keys`, `fm` |
+| `lib/voices/*.scd` | instruments: `creature`, `bytebeat`, `hum` (noise.scd), `noise` (noisegen.scd), `deck`, `osc3`, `atari`, `drums`, `grains`, `kick`, `keys`, `fm` |
 | `lib/motion.scd` | transport, tempo, lurch, recording |
-| `lib/gui/*.scd` | widgets (drawn knobs), browser, clip views, mixer + scenes, main window |
+| `lib/gui/*.scd` | widgets (drawn knobs, sliders, sometimes), browser, clip views, mixer + scenes, EQ Eight panel, the box, main window |
 
 To add an instrument, add a file to `lib/voices/` that registers `~voiceTypes[\name]` (copy one of
-the existing ones), then add it to the list in `unsound.scd`. To add a device, add a `~deviceDef`
+the existing ones), then add it to the list in `unsound.scd`. Give it `pages` for the box's
+encoders and `sometimes` for its every-so-often controls. To add a device, add a `~deviceDef`
 and an entry in `~deviceTypes` (in `lib/devices.scd`).
 
 See [PLAN.md](PLAN.md) for where this is going.

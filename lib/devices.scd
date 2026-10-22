@@ -193,6 +193,29 @@
 		Balance2.ar(m + sd, m - sd, SinOsc.kr(rate) * autopan)
 	});
 
+	// EQ Eight: eight bands, each a low cut, low shelf, bell, notch, high shelf or high cut.
+	~deviceDef.(\dEQ8, { |sig|
+		8.do { |i|
+			var n = i + 1;
+			var f = ("f" ++ n).asSymbol.kr(1000, 0.05).clip(20, 20000);
+			var g = ("g" ++ n).asSymbol.kr(0, 0.05);
+			var q = ("q" ++ n).asSymbol.kr(0.71, 0.05).clip(0.1, 18);
+			var type = ("t" ++ n).asSymbol.kr(2).round.clip(0, 5);
+			var on = ("on" ++ n).asSymbol.kr(1) > 0.5;
+			var x0 = (2 * q).reciprocal, bw = (2 / 2.log) * (x0 + (x0.squared + 1).sqrt).log;   // octaves, from Q
+			var x = Select.ar(type, [
+				BHiPass.ar(sig, f, q.reciprocal), BLowShelf.ar(sig, f, 1, g), BPeakEQ.ar(sig, f, q.reciprocal, g),
+				BBandStop.ar(sig, f, bw), BHiShelf.ar(sig, f, 1, g), BLowPass.ar(sig, f, q.reciprocal)
+			]);
+			sig = Select.ar(on, [sig, x]);
+		};
+		sig * \out.kr(1, 0.05)
+	});
+
+	// Only if the VSTPlugin extension is installed (https://git.iem.at/pd/vstplugin). Referenced by
+	// name, so this file still compiles without it.
+	if (\VSTPlugin.asClass.notNil) { ~deviceDef.(\dVST, { |sig| \VSTPlugin.asClass.ar(sig, 2) }) };
+
 	~deviceDef.(\dLimiter, { |sig, gain = 1, ceiling = 0.95|
 		Limiter.ar(LeakDC.ar(sig) * gain, ceiling)
 	});
@@ -252,6 +275,20 @@
 };
 
 // ---------------------------------------------------------------- the device list
+
+// EQ Eight: band n has fn (freq), gn (gain dB), qn (Q), tn (type), onn (on).
+~eq8Types = [\lowcut, \lowshelf, \bell, \notch, \highshelf, \highcut];
+~eq8Defaults = (
+	f: [30, 100, 250, 600, 1500, 3500, 8000, 18000], t: [0, 1, 2, 2, 2, 2, 4, 5],
+	q: [0.71, 0.71, 1, 1, 1, 1, 0.71, 0.71], on: [0, 1, 1, 1, 1, 1, 1, 0]);
+~eq8Params = (1..8).collect { |n|
+	var i = n - 1;
+	[~p.(("f" ++ n).asSymbol, ~eq8Defaults[\f][i], [20, 20000, \exp], "freq " ++ n),
+		~p.(("g" ++ n).asSymbol, 0, [-18, 18], "gain " ++ n),
+		~p.(("q" ++ n).asSymbol, ~eq8Defaults[\q][i], [0.1, 18, \exp], "q " ++ n),
+		~p.(("t" ++ n).asSymbol, ~eq8Defaults[\t][i], [0, 5, \lin, 1], "type " ++ n).put(\dice, false),
+		~p.(("on" ++ n).asSymbol, ~eq8Defaults[\on][i], [0, 1, \lin, 1], "on " ++ n).put(\dice, false)]
+}.flatten ++ [~p.(\out, 1, [0, 2, \amp], "output"), ~p.(\mix, 1, [0, 1])];
 
 ~deviceTypes = (
 	drive: (def: \dDrive, cat: \distortion, params: [
@@ -316,8 +353,33 @@
 	gate: (def: \dGate, cat: \dynamics, params: [~p.(\thresh, 0.05, [0.001, 0.5, \exp]), ~p.(\mix, 1, [0, 1])]),
 	width: (def: \dWidth, cat: \dynamics, params: [
 		~p.(\width, 1, [0, 3]), ~p.(\autopan, 0, [0, 1]), ~p.(\rate, 0.5, [0.01, 20, \exp]), ~p.(\mix, 1, [0, 1])]),
+	eq8: (def: \dEQ8, cat: \filter, panel: { |t, d| ~eq8Panel.(t, d) }, width: 470, params: ~eq8Params,
+		pages: [["eq gain", (1..8).collect { |n| ("g" ++ n).asSymbol }], ["eq freq", (1..8).collect { |n| ("f" ++ n).asSymbol }],
+			["eq q", (1..8).collect { |n| ("q" ++ n).asSymbol }]]),
 	limiter: (def: \dLimiter, cat: \dynamics, params: [~p.(\gain, 1, [0.25, 8, \exp], "drive in"), ~p.(\ceiling, 0.95, [0.1, 1])])
 );
+
+// ---------------------------------------------------------------- VST (experimental)
+// The plugin's name is kept as the device's label, so sets and scenes reopen it.
+if (\VSTPlugin.asClass.notNil) {
+	~deviceTypes[\vst] = (def: \dVST, cat: \dynamics, params: [~p.(\mix, 1, [0, 1])],
+		built: { |t, d|
+			d[\vst] = \VSTPluginController.asClass.new(d[\synth]);
+			if (d[\label].notNil and: { d[\label] != "vst" }) { { d[\vst].open(d[\label], editor: true) }.defer(0.5) };
+		},
+		gui: { |t, d| [
+			~button.("plugin…", {
+				\VSTPlugin.asClass.search(s, action: {
+					{
+						var keys = \VSTPlugin.asClass.pluginKeys(s);
+						Menu(*keys.collect { |k| MenuAction(k.asString, { d[\label] = k.asString; d[\vst].open(k, editor: true); ~refreshDetail.() }) }).front;
+					}.defer;
+				});
+			}),
+			~button.("editor", { d[\vst] !? { |v| v.editor } })
+		] });
+	~vstItems = [["vst plugin", \vst, ()]];
+} { ~vstItems = [] };
 
 // Browser entries: a device with preset params, or a whole chain. Drag them onto a track.
 ~browserItems = [
@@ -349,7 +411,7 @@
 	[\dynamics, [
 		["compressor", \compressor, ()], ["gate", \gate, ()], ["width", \width, ()], ["autopan", \width, (autopan: 0.8)],
 		["limiter", \limiter, ()]
-	]],
+	] ++ ~vstItems],
 	[\chains, [
 		["noise wall", [[\drive, (mode: 4, gain: 12)], [\feedback, ()], [\smear, (mix: 0.6)], [\space, (mix: 0.5)]]],
 		["broken radio", [[\filter, (mode: 2, cutoff: 1800, res: 0.7)], [\crush, (bits: 5, rate: 4000)], [\dirt, ()], [\chop, (rate: 0.125, depth: 0.7)]]],
@@ -370,6 +432,7 @@
 ~buildDevice = { |t, d|
 	d[\synth] = Synth.tail(t[\fxg], ~deviceTypes[d[\type]][\def], [bus: t[\bus]] ++ ~deviceArgs.(d));
 	if (d[\on].not) { d[\synth].run(false) };
+	~deviceTypes[d[\type]][\built].value(t, d);
 };
 
 ~orderDevices = { |t| t[\devices].do { |d| d[\synth].moveToTail(t[\fxg]) } };
@@ -396,6 +459,7 @@
 		t[\devices].insert(index, d);
 		~buildDevice.(t, d);
 		~orderDevices.(t);
+		~soDevice.(t, d);
 		if (~running == true) { ~startDevice.(t, d) };
 		if (~alive == true and: { ~booted == true } and: { t[\kind] != \master } and: { d[\pinned] != true }) { ~infectDevice.(t, d) };
 		~refreshDetail.();
@@ -424,6 +488,7 @@
 ~drem = { |name, d|
 	if (d[\pinned] != true) {
 		~unmodPrefix.("d:%:".format(d[\uid]));
+		~soRemovePrefix.("d:%:".format(d[\uid]));
 		d[\routine].stop;
 		d[\synth].free;
 		~tracks[name][\devices].remove(d);
@@ -443,13 +508,14 @@
 // Free and rebuild a track's whole chain from a list of device descriptions (used by scenes).
 ~setChain = { |name, descs|
 	var t = ~tracks[name];
-	t[\devices].do { |d| d[\routine].stop; d[\synth].free; ~unmodPrefix.("d:%:".format(d[\uid])) };
+	t[\devices].do { |d| d[\routine].stop; d[\synth].free; ~unmodPrefix.("d:%:".format(d[\uid])); ~soRemovePrefix.("d:%:".format(d[\uid])) };
 	t[\devices] = List.newFrom(descs.collect { |x|
 		var d = (type: x[\type], on: x[\on], params: x[\params].copy, label: x[\label], pinned: x[\pinned],
 			uid: x[\uid] ?? { ~nextUid = (~nextUid ? 0) + 1 });
 		~nextUid = (~nextUid ? 0).max(d[\uid]);
 		~rollMystery.(d);
 		~buildDevice.(t, d);
+		~soDevice.(t, d);
 		if (~running == true) { ~startDevice.(t, d) };
 		d
 	});

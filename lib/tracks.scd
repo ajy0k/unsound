@@ -126,6 +126,7 @@ OSCdef(\uMeter, { |msg|
 		~tracks[t[\name]] = t;
 		~voiceOrder.add(t[\name]);
 		it[\init].value(t);
+		~soTrack.(t);
 		~buildTrack.(t);
 		(it[\chain] ? []).do { |c| ~dev.(t[\name], c[0], nil, c[1]) };
 		if (~running == true) { ~startTrack.(t) };
@@ -161,7 +162,8 @@ OSCdef(\uMeter, { |msg|
 	if (t.notNil and: { t[\kind] != \master }) {
 		~stopTrack.(t);
 		~unmodPrefix.("t:%:".format(name));
-		t[\devices].do { |d| ~unmodPrefix.("d:%:".format(d[\uid])) };
+		~soRemovePrefix.("t:%:".format(name));
+		t[\devices].do { |d| ~unmodPrefix.("d:%:".format(d[\uid])); ~soRemovePrefix.("d:%:".format(d[\uid])) };
 		t[\grp].free;
 		if (t[\kind] == \inst) { ~voiceTypes[t[\type]][\free].value(t); ~voiceOrder.remove(name) };
 		if (t[\kind] == \return) {
@@ -193,6 +195,7 @@ OSCdef(\uMeter, { |msg|
 		{ \solo } { ~updateGates.() }
 		{ \pre } { ~refreshAllStrips.() };
 		t[\voice] !? { |v| if (val.isNumber) { v.set(key, val) } };
+		if (t[\kind] == \inst) { ~voiceTypes[t[\type]][\onSet].value(t, key, val) };
 	};
 };
 

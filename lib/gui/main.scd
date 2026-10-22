@@ -8,6 +8,18 @@
 ~detailMode = ~detailMode ? \clip;
 
 ~help = [
+	["the box (default view)", [
+		["pads", "click = focus · double-click = mute · right-click = solo"],
+		["encoders", "the 8 small knobs right of the screen are the focused track's current page"],
+		["handle under the screen", "drag it to trade screen space for chain space"],
+		["tab  /  shift tab", "next / previous page (also ◀ ▶)"],
+		["`", "switch between the box and the studio window"],
+		["MIDI learn + encoder", "maps a hardware knob to that encoder: it follows focus everywhere"],
+		["MIDI learn + ◀ ▶ / track / glide / cut", "map pads or buttons on a controller to them"]]],
+	["every so often", [
+		["button", "do it now"],
+		["slider (no numbers)", "how often: empty = never, full = a few times a second, at random intervals"],
+		["right-click the slider", "give it a modulator, like any knob"]]],
 	["play", [
 		["space", "play / stop"],
 		["A W S E D F T G Y H U J K O L P ;", "notes on the selected track (drums: one lane per white key)"],
@@ -17,7 +29,7 @@
 		["1 – 9", "select instrument track"], ["0", "select master"], ["←  /  →", "previous / next track"],
 		["↑  /  ↓", "volume of the selected track"], ["shift ↑  /  ↓", "tempo of the selected track (unsyncs it)"],
 		["M", "mute the selected track"], ["R", "resync the selected track to the master clock"],
-		["tab", "clip → devices → mods"]]],
+		["tab", "studio: clip → devices → mods"]]],
 	["somewhere else", [
 		["Q", "glide: lurch toward somewhere new over the morph time"],
 		["=", "cut: jump somewhere new on a dime"],
@@ -37,6 +49,9 @@
 		["double-click in the browser", "add to the end of the selected track's chain"],
 		["drag from the browser", "onto a strip, the device area, or a device (inserts before it)"],
 		["drum grid", "click = hit · drag = paint · right-click = lane length"],
+		["drum lane: syn / fm / smp", "click to cycle the lane's sound · rnd = random slice · load = your own sample"],
+		["EQ Eight", "drag a dot (freq / gain) · scroll on it = Q · double-click = band on/off"],
+		["deck waveform", "click = move the playhead · drag = pick the loop"],
 		["scroll wheel over the mixer", "scrolls sideways"]]],
 	["MIDI", [
 		["MIDI learn", "switch it on, touch a control on screen, then move a hardware control"],
@@ -53,7 +68,7 @@
 					StaticText().string_(kv[1]).font_(Font(Font.defaultSansFace, 12)).stringColor_(Color.grey(0.75))]
 			}
 		}.flatten(1);
-		~helpWin = Window("unsound — keys", Rect(200, 120, 720, 760)).background_(Color.grey(0.12));
+		~helpWin = Window("unsound — keys", Rect(120, 40, 1040, 960)).background_(Color.grey(0.12));
 		~helpWin.layout = VLayout(GridLayout.rows(*rows).hSpacing_(18).vSpacing_(4), nil);
 		~helpWin.front;
 	};
@@ -103,6 +118,7 @@
 			~toggle.("MIDI learn", { ~midiLearn }, { |x| ~midiLearn = x; if (x.not) { ~learnTarget = nil } }, Color.yellow),
 			~button.("save set", { Dialog.savePanel({ |p| ~saveSet.(p) }, nil, ~setsDir) }),
 			~button.("load set", { Dialog.openPanel({ |p| ~loadSet.(p) }, nil, false, ~setsDir) }),
+			~button.("box", { ~viewMode = \box; ~refreshGui.() }),
 			nil,
 			oct,
 			Button().canFocus_(false).fixedWidth_(30).states_([["?", Color.black, ~accent]]).action_({ ~showHelp.() }),
@@ -125,19 +141,23 @@
 			Button().canFocus_(false).fixedWidth_(20).states_([["x"]]).action_({ ~drem.(t[\name], d) })
 		];
 	} { title = title ++ " (always)" };
-	rows = knobs.clump(3).collect { |row| HLayout(*(row ++ [nil])) };
+	rows = if (dt[\panel].notNil) { [dt[\panel].value(t, d)] } { knobs.clump(3).collect { |row| HLayout(*(row ++ [nil])) } };
+	if (dt[\panel].notNil) { rows = rows.add(HLayout(~qknob.(t, d), nil)) };
 	if (d[\type] == \drive) {
 		rows = rows.add(StaticText().font_(Font.monospace(9)).stringColor_(Color.grey(0.65))
 			.string_("mode: " ++ ~driveModes.collect { |m, i| "%=%".format(i, m) }.join(" ")));
 	};
 	if (dt[\gui].notNil) { rows = rows.add(HLayout(*dt[\gui].value(t, d))) };
-	panel = ~panel.(title, Color.grey(0.62), VLayout(*rows), 210, extras);
+	rows = rows.add(~sometimesW.("jump", "d:%:soJump".format(d[\uid]), { d[\params][\soJump] }, { |x| d[\params][\soJump] = x },
+		Color.white, 100));
+	panel = ~panel.(title, Color.grey(0.62), VLayout(*rows), dt[\width] ? 210, extras);
 	// dropping a browser entry on a device inserts before it
 	~dropTarget.(panel, { t[\name] }, { t[\devices].indexOf(d) })
 };
 
 ~chain = { |t|
-	var panels = (if (t[\kind] == \inst) { ~voiceTypes[t[\type]][\device].value(t) } { [] })
+	var panels = (if (t[\kind] == \inst) {
+		~voiceTypes[t[\type]][\device].value(t).collect { |p| p.maxWidth_(p.sizeHint.width.max(140)) } } { [] })
 		++ t[\devices].collect { |d| ~devicePanel.(t, d) }
 		++ [StaticText().string_("drop effects here\nor use + in the browser").stringColor_(Color.grey(0.45))
 			.align_(\center).fixedWidth_(170)];
@@ -178,6 +198,10 @@
 
 ~buildDetail = {
 	var t = ~tracks[~selected] ?? { ~masterTrack };
+	if (~viewMode == \box) { ~buildBoxFocus.() } { ~buildStudioDetail.(t) };
+};
+
+~buildStudioDetail = { |t|
 	if (~detailView.notNil) { ~detailView.remove };
 	~detailView = ~detailFor.(t);
 	~detailHolder.layout.add(~detailView);
@@ -210,14 +234,19 @@
 	~win = Window("unsound", bounds).background_(Color.grey(0.11));
 	~detailHolder = View().layout_(VLayout().margins_(0));
 	~detailView = nil;
-	~win.layout = HLayout(
-		~browser.(),
-		VLayout(
-			~transport.(),
-			[View().fixedHeight_(330).layout_(~mixer.().margins_(0)), stretch: 0],
-			[~detailHolder, stretch: 1]
-		).spacing_(6)
-	).margins_(6).spacing_(6);
+	~titleButtons = ();
+	if (~viewMode == \box) { ~win.layout = ~boxLayout.() } {
+		~boxScreenHolder = nil;
+		~boxEncHolder = nil;
+		~win.layout = HLayout(
+			~browser.(),
+			VLayout(
+				~transport.(),
+				[View().fixedHeight_(330).layout_(~mixer.().margins_(0)), stretch: 0],
+				[~detailHolder, stretch: 1]
+			).spacing_(6)
+		).margins_(6).spacing_(6);
+	};
 	~buildDetail.();
 	~refreshMods = { if (~detailMode == \mods) { ~refreshDetail.() } };
 	~win.front;

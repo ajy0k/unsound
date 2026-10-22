@@ -13,7 +13,7 @@
 ~maxSecs = ~maxSecs ? 20;         // only read the first N seconds of each file
 ~gui = ~gui ? true;
 ~tempo = ~tempo ? 132;
-~startVoices = ~startVoices ? [\creature, \bytebeat, \hum, \grains, \drums];
+~startVoices = ~startVoices ? [\noise, \bytebeat, \deck, \atari, \osc3, \drums];
 ~startReturns = ~startReturns ? [\space, \echo, \shift, \smear];
 
 ~m = (chaos: 0.4);   // the one global macro: widens every random walk, raises every probability
@@ -34,6 +34,7 @@ if (s.serverRunning) {
 	"lib/devices.scd",
 	"lib/melody.scd",
 	"lib/mods.scd",
+	"lib/sometimes.scd",
 	"lib/drones.scd",
 	"lib/scenes.scd",
 	"lib/control.scd",
@@ -43,11 +44,17 @@ if (s.serverRunning) {
 	"lib/voices/fm.scd",
 	"lib/voices/noise.scd",
 	"lib/voices/drums.scd",
+	"lib/voices/noisegen.scd",
+	"lib/voices/deck.scd",
+	"lib/voices/osc3.scd",
+	"lib/voices/atari.scd",
 	"lib/motion.scd",
 	"lib/gui/widgets.scd",
 	"lib/gui/clips.scd",
 	"lib/gui/browser.scd",
 	"lib/gui/mixer.scd",
+	"lib/gui/eq.scd",
+	"lib/gui/box.scd",
 	"lib/gui/main.scd"
 ].do { |file| (~root +/+ file).load };
 
@@ -94,6 +101,8 @@ s.waitForBoot {
 	~selected = ~voiceOrder.first;
 	~initMidi.();
 	~startMods.();
+	~soGlobal.();
+	~startSometimes.();
 	~infect.(6);   // start alive
 	~booted = true;
 	s.sync;

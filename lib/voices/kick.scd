@@ -77,6 +77,10 @@
 			step = (step + 1) % 16;
 		}
 	},
+	pages: { |t| [
+		~pg.(t, "kick", [[\tone, [30, 80, \exp]], [\decay, [0.05, 2, \exp]], [\sweep, [0, 12]], [\click, [0, 1]],
+			[\drive, [0.5, 10, \exp]], [\swing, [0, 0.4]], [\ratchet, [0, 1]], [\mutate, [0, 1]]])
+	] },
 	clip: { |t|
 		VLayout(
 			~row.(
