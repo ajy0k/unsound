@@ -107,6 +107,12 @@ the mods-into-mods, or the takeover slider. Added:
 - ✅ **mouth**: a talking machine (formant synthesis): babbles, says typed text in a loop, or holds a
   vowel; s/sh/f hiss, p/t/k pops, m/n nose; pitch, throat size, sing, robot, lofi (Speak & Spell)
 
+Then:
+- ✅ **LFOs, Serum / Vital style** (the user's "banger idea"): a row of LFOs under the pads, any number.
+  Draw the shape (points + bendable curves, presets), sync or free rate, drag the handle onto any knob,
+  drag the knob's outer ring for amount. An LFO's rate is a knob, so LFOs move LFOs. Saved with sets.
+- ✅ the wall respects solo (and has an S)
+
 Also from the same session: **pop-out windows** (⧉ on any device, or the whole track: as many as
 you like, like plugin windows; the user never minded 20 windows and tabbing between them) and
 **M / S / volume** on every pad.

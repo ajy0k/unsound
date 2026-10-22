@@ -68,6 +68,7 @@
 		other = ~mods.detect { |x| x[\id] == src.drop(4).asInteger };
 		other !? { other[\val] }
 	}
+	{ src.beginsWith("lfo:") } { ~lfoFor.(src.drop(4).asInteger) !? { |l| l[\val] } }
 };
 
 ~stepMod = { |m, dt|
@@ -86,7 +87,10 @@
 	{ \burst } { if (crossed and: { 0.35.coin }) { m[\held] = 1 } { m[\held] = m[\held] * 0.85 }; m[\held] * 2 - 1 }
 	{ 0 } };
 	// a little slew so stepped shapes click less (followers: `rate` sets how fast they follow)
-	m[\val] = m[\val] + ((v - m[\val]) * (if (ext.notNil) { (m[\rate] * 0.1).clip(0.02, 1) } { 0.5 }));
+	m[\val] = case
+	{ m[\source].asString.beginsWith("lfo:") } { v }   // an LFO's shape is exactly what you drew
+	{ ext.notNil } { m[\val] + ((v - m[\val]) * (m[\rate] * 0.1).clip(0.02, 1)) }
+	{ m[\val] + ((v - m[\val]) * 0.5) };
 	m[\target][\set].value(m[\target][\spec].map((m[\home] + (m[\depth] * m[\val])).clip(0, 1)));
 };
 
@@ -95,6 +99,7 @@
 	~modTask = Routine({
 		var dt = ~modRate.reciprocal;
 		loop {
+			~lfos.do { |l| ~stepLfo.(l, dt) };
 			~mods.copy.do { |m| try { ~stepMod.(m, dt) } { ~mods.remove(m) } };
 			dt.wait;
 		}
@@ -265,6 +270,7 @@
 				get: { (~returnOrder.indexOf(ret) !? { |j| t[\sends][j] }) ? 0 }, set: { |x| ~send.(t[\name], ret, x) })
 		}
 	}
+	{ "lfo" } { ~lfoFor.(parts[1].asInteger) !? { |l| ~lfoTarget.(l) } }
 	{ "box" } { ~boxTargets[parts[1].asInteger] }
 	{ "btn" } { ~btnTarget.(tid) }
 	{ "g" } {

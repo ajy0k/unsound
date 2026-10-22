@@ -1,5 +1,5 @@
 // The wall: a background noise layer, always there to swap in and out. Not an instrument track:
-// one per set, it ignores solo, and dice / glide leave it alone (it's yours to shape). Under the
+// one per set, and dice / glide leave it alone (it's yours to shape). It does respect solo. Under the
 // hood it's a track of kind \wall, so it has a strip, sends, a meter and an effect chain like any
 // other (it starts with `band`, the lows/highs shaper, and a hard digital drive).
 //

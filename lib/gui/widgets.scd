@@ -23,6 +23,16 @@
 
 ~isMapped = { |target| ~midiMap.any { |m| m[\target] === target } };
 
+// Mods driven by an LFO are drawn in that LFO's colour.
+~lfoOf = { |m| var src = m[\source].asString; if (src.beginsWith("lfo:")) { ~lfoFor.(src.drop(4).asInteger) } };
+~modColor = { |m| ~lfoOf.(m) !? { |l| l[\color] } ?? { Color(1, 1, 1, 0.55) } };
+
+// Let a view take an LFO dropped on it (its handle is dragged from the LFO row).
+~lfoDrop = { |view, target|
+	view.canReceiveDragHandler_({ View.currentDrag.isKindOf(Event) and: { View.currentDrag[\kind] == \lfo } })
+		.receiveDragHandler_({ ~assignLfo.(View.currentDrag[\id], target); view.refresh });
+};
+
 // A drawn knob: drag up/down (shift = fine), scroll wheel, double-click resets.
 // Right-click (or alt-click) gives it a modulator, or takes it away. A modulated knob shows its
 // range as a thin outer arc; turning it moves the home the mod swings around.
@@ -30,10 +40,12 @@
 // `tid` is a stable id (so mods survive the GUI being rebuilt); `name` labels it in the mods view.
 ~knob = { |label, spec, get, set, size = 40, color, tid, name, learnAs|
 	var w = size + 18, view = UserView().fixedSize_(Size(w, size + 30)).canFocus_(false);
-	var val, def, touched = 0, y0, v0, center, target, change;
+	var val, def, touched = 0, y0, v0, center, target, change, depthDrag = false, d0, onRing;
 	spec = spec.asSpec;
 	val = spec.unmap(get.value ? spec.default);
 	def = val;
+	// the outer ring (where a mod's range is drawn): dragging there sets how much the mod moves it
+	onRing = { |x, y| var d = Point(x, y).dist(Point(w / 2, 15 + (size / 2))); d > (size / 2 - 4) and: { d < (size / 2 + 8) } };
 	center = if (spec.minval < 0 and: { spec.maxval > 0 }) { spec.unmap(0) } { 0 };
 	color = color ? ~accent;
 	target = (tid: tid ? label, name: name ? label, spec: spec, get: get, set: set);
@@ -61,12 +73,18 @@
 		Pen.addArc(c, r, min(a, ac), (a - ac).abs.max(0.02));
 		Pen.stroke;
 		if (m.notNil) {
-			lo = (m[\home] - m[\depth]).clip(0, 1);
-			hi = (m[\home] + m[\depth]).clip(0, 1);
-			Pen.width = 2;
-			Pen.strokeColor = Color(1, 1, 1, 0.55);
+			lo = (m[\home] - m[\depth].abs).clip(0, 1);
+			hi = (m[\home] + m[\depth].abs).clip(0, 1);
+			Pen.width = if (~lfoOf.(m).notNil) { 3 } { 2 };
+			Pen.strokeColor = ~modColor.(m);
 			Pen.addArc(c, r + 4, a0 + (sw * lo), (sw * (hi - lo)).max(0.02));
 			Pen.stroke;
+			~lfoOf.(m) !? { |l|
+				Pen.fillColor = l[\color];
+				Pen.addOval(Rect(1, 13, 11, 11));
+				Pen.fill;
+				Pen.stringCenteredIn(l[\id].asString, Rect(1, 13, 11, 11), Font(Font.defaultSansFace, 7, true), Color.black);
+			};
 			Pen.fillColor = Color(1, 1, 1, 0.8);
 			Pen.addOval(Rect.aboutPoint(c + (Point((a0 + (sw * m[\home])).cos, (a0 + (sw * m[\home])).sin) * (r + 4)), 2.5, 2.5));
 			Pen.fill;
@@ -88,19 +106,29 @@
 		};
 		Pen.stringCenteredIn(~fmt.(spec.map(val)), Rect(0, size + 16, w, 13), Font.monospace(9), Color.grey(0.88));
 	};
-	view.toolTip = (name ? label ? "") ++ "\ndrag up/down (shift = fine) · double-click = reset\nright-click = give it a modulator (or take it away)";
+	view.toolTip = (name ? label ? "") ++ "\ndrag up/down (shift = fine) · double-click = reset\nright-click = give it a modulator (or take it away)"
+		++ "\ndrop an LFO here · drag the outer ring (or cmd-drag) = how much the mod moves it";
 	view.mouseDownAction = { |uv, x, y, mod, bn, clicks|
+		var m = ~modFor.(target[\tid]);
 		case
 		{ bn == 1 or: { mod.isAlt } } { ~toggleMod.(target); y0 = nil; uv.refresh }
+		{ m.notNil and: { mod.isCmd or: { onRing.(x, y) } } } { depthDrag = true; y0 = y; d0 = m[\depth] }
 		{ clicks == 2 } { change.(def) }
-		{ y0 = y; v0 = (~modFor.(target[\tid]) !? { |m| m[\home] }) ? val; ~learn.(learnAs ? target) };
+		{ y0 = y; v0 = m !? { m[\home] } ? val; ~learn.(learnAs ? target) };
 		nil
 	};
 	view.mouseMoveAction = { |uv, x, y, mod|
-		if (y0.notNil) { change.(v0 + ((y0 - y) / (if (mod.isShift) { 900 } { 180 }))) };
+		var m;
+		case
+		{ depthDrag } {
+			m = ~modFor.(target[\tid]);
+			m !? { m[\depth] = (d0 + ((y0 - y) / (if (mod.isShift) { 600 } { 120 }))).clip(-1, 1); uv.refresh };
+		}
+		{ y0.notNil } { change.(v0 + ((y0 - y) / (if (mod.isShift) { 900 } { 180 }))) };
 		nil
 	};
-	view.mouseUpAction = { y0 = nil; nil };
+	view.mouseUpAction = { y0 = nil; depthDrag = false; nil };
+	~lfoDrop.(view, target);
 	view.mouseWheelAction = { |uv, x, y, mod, dx, dy| change.(val + (dy.sign * (if (mod.isShift) { 0.002 } { 0.015 }))); true };
 	~bindings.add({
 		var nv;
@@ -168,6 +196,7 @@
 		nil
 	};
 	view.mouseMoveAction = { |uv, x| if (dragging) { change.(x / uv.bounds.width) }; nil };
+	~lfoDrop.(view, target);
 	view.mouseUpAction = { dragging = false; nil };
 	view.mouseWheelAction = { |uv, x, y, mod, dx, dy| change.(val + (dy.sign * 0.02)); true };
 	~animated.add({

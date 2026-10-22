@@ -22,6 +22,12 @@
 		["takeover  /  hold '", "push the focused track toward infinity while everything else ducks · ∞ = all the way while held"],
 		["the wall", "the background layer: pick a wall (crossfades), fade it in / out, shape it with band"],
 		["digital (browser)", "bitmask, aliaser, bins, codec, overflow, skip: things a pedal can't do"]]],
+	["LFOs (the row under the pads)", [
+		["drag", "drag an LFO's coloured handle onto any knob: it modulates that knob"],
+		["outer ring of a knob", "drag it up / down (or cmd-drag the knob) = how much the LFO / mod moves it"],
+		["the shape", "drag points · drag the small circle halfway along a segment to bend it · double-click = add / remove a point"],
+		["sync / rate", "sync to the tempo (1/32 to 8 bars) or free (Hz); the free rate is a knob, so LFOs can move LFOs"],
+		["+ LFO  /  ⧉  /  x", "another LFO (as many as you like) / a big editor / remove it"]]],
 	["every so often", [
 		["button", "do it now"],
 		["slider (no numbers)", "how often: empty = never, full = a few times a second, at random intervals"],
@@ -252,6 +258,7 @@
 			VLayout(
 				~transport.(),
 				[View().fixedHeight_(330).layout_(~mixer.().margins_(0)), stretch: 0],
+				~lfoRow.(),
 				[~detailHolder, stretch: 1]
 			).spacing_(6)
 		).margins_(6).spacing_(6);

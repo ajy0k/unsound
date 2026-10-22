@@ -70,7 +70,7 @@
 		).spacing_(2),
 		HLayout(*(
 			[~toggle.("on", { t[\on] }, { |x| ~tset.(name, \on, x) }, color)]
-			++ (if (t[\kind] == \inst) { [~toggle.("S", { t[\solo] }, { |x| ~tset.(name, \solo, x) }, Color(0.3, 0.6, 1))] } { [] })
+			++ (if (~soloable.(t)) { [~toggle.("S", { t[\solo] == true }, { |x| ~tset.(name, \solo, x) }, Color(0.3, 0.6, 1))] } { [] })
 			++ (if (t[\kind] == \return) { [~toggle.("pre", { t[\pre] }, { |x| ~tset.(name, \pre, x) })] } { [] })
 			++ (if ([\master, \wall].includes(t[\kind]).not) { [Button().canFocus_(false).fixedWidth_(18).states_([["x"]]).action_({ ~remove.(name) })] } { [] })
 		)).spacing_(1)

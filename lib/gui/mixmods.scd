@@ -36,8 +36,9 @@
 ~modRow = { |t, m, depth|
 	var tg = m[\target];
 	var label = tg[\name].asString.replace(t[\name].asString ++ " ", "");
-	var sources = [\shape] ++ ~voiceOrder.collect { |n| "follow:" ++ n } ++ ~mods.reject { |x| x === m }.collect { |x| "mod:" ++ x[\id] };
-	var srcLabels = ["own shape"] ++ ~voiceOrder.collect { |n| "follows " ++ n }
+	var sources = [\shape] ++ ~lfos.collect { |l| "lfo:" ++ l[\id] } ++ ~voiceOrder.collect { |n| "follow:" ++ n }
+		++ ~mods.reject { |x| x === m }.collect { |x| "mod:" ++ x[\id] };
+	var srcLabels = ["own shape"] ++ ~lfos.collect { |l| "LFO " ++ l[\id] } ++ ~voiceOrder.collect { |n| "follows " ++ n }
 		++ ~mods.reject { |x| x === m }.collect { |x| "driven by " ++ x[\target][\name] };
 	View().layout_(HLayout(
 		View().fixedWidth_(depth * 12),

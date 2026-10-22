@@ -41,6 +41,7 @@ if (s.serverRunning) {
 	"lib/melody.scd",
 	"lib/mods.scd",
 	"lib/sometimes.scd",
+	"lib/lfos.scd",
 	"lib/tape.scd",
 	"lib/wall.scd",
 	"lib/drones.scd",
@@ -65,6 +66,7 @@ if (s.serverRunning) {
 	"lib/gui/mixer.scd",
 	"lib/gui/eq.scd",
 	"lib/gui/mixmods.scd",
+	"lib/gui/lfoview.scd",
 	"lib/gui/box.scd",
 	"lib/gui/main.scd"
 ].do { |file| (~root +/+ file).load };
@@ -121,6 +123,7 @@ s.waitForBoot {
 	~voiceOrder.select { |n| ~tracks[n][\type] == \bytebeat }.drop(1).do { |n| ~diceTrack.(n) };
 	~selected = ~voiceOrder.first;
 	~initMidi.();
+	~startLfos.();
 	~startMods.();
 	~soGlobal.();
 	~startSometimes.();

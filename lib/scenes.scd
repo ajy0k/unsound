@@ -171,7 +171,7 @@
 	File.mkdir(path.dirname);
 	f = File(path, "w");
 	f.write((state: ~snapshot.(), scenes: ~scenes.asArray, song: ~song.asArray, morphBeats: ~morphBeats,
-		midi: ~midiState.(), events: ~events, lurchDistance: ~lurchDistance).asCompileString);
+		midi: ~midiState.(), events: ~events, lurchDistance: ~lurchDistance, lfos: ~lfoState.()).asCompileString);
 	f.close;
 	"unsound: saved %".format(path).postln;
 	path
@@ -185,6 +185,7 @@
 		~morphBeats = set[\morphBeats] ? 4;
 		set[\events] !? { |e| ~events = e };
 		~lurchDistance = set[\lurchDistance] ? ~lurchDistance;
+		set[\lfos] !? { |l| ~applyLfos.(l) };
 		~applyState.(set[\state], 0, true);
 		set[\midi] !? { |m| ~applyMidi.(m) };
 		~refreshGui.();

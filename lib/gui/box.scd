@@ -190,7 +190,7 @@
 			// on the wall, M fades it in and out instead of cutting it
 			if (t[\kind] == \wall) { ~toggle.("M", { t[\in].not }, { |x| ~tset.(name, \in, x.not) }, Color(1, 0.8, 0.2)).fixedSize_(Size(22, 22)) }
 				{ ~toggle.("M", { t[\on].not }, { |x| ~tset.(name, \on, x.not) }, Color(1, 0.8, 0.2)).fixedSize_(Size(22, 22)) },
-			if (t[\kind] == \inst) { ~toggle.("S", { t[\solo] == true }, { |x| ~tset.(name, \solo, x) }, Color(0.3, 0.6, 1)).fixedSize_(Size(22, 22)) }
+			if (~soloable.(t)) { ~toggle.("S", { t[\solo] == true }, { |x| ~tset.(name, \solo, x) }, Color(0.3, 0.6, 1)).fixedSize_(Size(22, 22)) }
 				{ View().fixedSize_(Size(22, 22)) }
 		).spacing_(1).margins_(0),
 		~knob.(nil, ~levelSpec, { t[\level] }, { |x| ~tset.(name, \level, x) }, 18, t[\color] ? Color.grey(0.6),
@@ -353,6 +353,7 @@
 		VLayout(
 			~boxTop.(),
 			~padRow.(),
+			~lfoRow.(),
 			~boxScreenHolder,
 			~splitHandle.(),
 			[~boxChainHolder, stretch: 1]

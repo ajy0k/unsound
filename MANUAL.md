@@ -47,7 +47,7 @@ See [The studio window](#14-the-studio-window).
 
 - **Focus** a track: click its pad, or **1–9** (instrument tracks in order), **0** (master),
   **← / →** (previous / next).
-- **Mute / solo / volume**: the **M**, **S** and knob next to each pad. **M** on the wall fades it
+- **Mute / solo / volume**: the **M**, **S** and knob next to each pad (solo works on the wall too). **M** on the wall fades it
   in and out instead of cutting it. Keys: **M** mutes the focused track, **↑ / ↓** volume.
 - **Add an instrument**: double-click (or drag) it in the browser, under INSTRUMENTS.
 - **Add a return**: **+ return** at the right end of the pads (it starts with a reverb; change it
@@ -114,7 +114,8 @@ The wall is the first pad: a background noise layer to swap in and out. Focus it
 - **dens** (density / rate), **grit** (how broken), **motion** (how much it moves by itself), **level**.
 - Its chain starts with **band** (shape it: lows and highs) and a hard clip. Add anything else.
 
-The wall ignores solo, and dice / glide leave it alone. It's yours to shape.
+Solo works on it like any track (it goes quiet when you solo something else, and it has its own
+**S**). Dice and glide leave it alone: it's yours to shape.
 
 ### Takeover
 
@@ -173,6 +174,28 @@ Also:
 - The studio window's **mods** tab shows every mod in the set at once.
 
 ---
+
+## 7½. LFOs (Serum / Vital style)
+
+![the LFO row](docs/img/lfos.png)
+
+The row under the pads holds the LFOs: three to start, **+ LFO** for as many as you like.
+
+- **Draw the shape**: drag the white points; drag the small circle halfway along a segment to bend
+  it (curves); double-click to add a point, double-click a point to remove it. **shape…** loads a
+  preset (sine, tri, saw up / down, square, pluck, swell, steps, random).
+- **Speed**: **sync** on = locked to the tempo (1/32 to 8 bars); off = free, in Hz (the small knob).
+- **Use it**: grab the coloured **✥ drag** handle and drop it on **any knob** (or every-so-often
+  slider), anywhere: instruments, effects, sends, the wall, another LFO's rate. The knob gets a ring
+  in the LFO's colour and a little numbered badge.
+- **How much**: drag that knob's **outer ring** up or down (or **cmd-drag** the knob). Drag below
+  zero to invert it. Turning the knob normally still moves the centre it swings around.
+- The **→ n** next to the handle counts what the LFO is moving. Each of those also shows in the
+  track's **mods** panel with source "LFO n", where you can switch it to another LFO or another source.
+- **⧉** opens a big editor for the shape; **x** removes the LFO (and the mods it was driving).
+- An LFO's free rate is a knob too: drop another LFO on it and LFOs move LFOs.
+
+LFOs are saved with the set.
 
 ## 8. Every so often
 

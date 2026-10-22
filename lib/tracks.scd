@@ -59,11 +59,13 @@ OSCdef(\uMeter, { |msg|
 
 // ---------------------------------------------------------------- strip plumbing
 
+// Solo works on instruments and the wall; returns and the master always play.
+~soloable = { |t| [\inst, \wall].includes(t[\kind]) };
 ~gateFor = { |t|
-	var anySolo = ~tracks.any { |x| x[\kind] == \inst and: { x[\solo] } };
+	var anySolo = ~tracks.any { |x| ~soloable.(x) and: { x[\solo] == true } };
 	case
 	{ t[\on].not } { 0 }
-	{ anySolo and: { t[\kind] == \inst } and: { t[\solo].not } } { 0 }
+	{ anySolo and: { ~soloable.(t) } and: { t[\solo] != true } } { 0 }
 	{ 1 }
 };
 
