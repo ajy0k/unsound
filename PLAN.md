@@ -112,6 +112,8 @@ Then:
   Draw the shape (points + bendable curves, presets), sync or free rate, drag the handle onto any knob,
   drag the knob's outer ring for amount. An LFO's rate is a knob, so LFOs move LFOs. Saved with sets.
 - ✅ the wall respects solo (and has an S)
+- ✅ **session recording**: everything, always, to `~/Music/unsound/sessions/` in 30-minute parts
+  (2 s overlap, 24-bit); keep also drops a marker into the session's .txt
 
 Also from the same session: **pop-out windows** (⧉ on any device, or the whole track: as many as
 you like, like plugin windows; the user never minded 20 windows and tabbing between them) and

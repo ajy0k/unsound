@@ -4,21 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "d87f61c11effcc3b",
+        "id": "a96f2a34fdf7de81",
         "type": "tabs",
         "children": [
           {
-            "id": "dfaca58e81f1795f",
+            "id": "6dce4b9cea1a1399",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "MANUAL.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "MANUAL"
+              "title": "New tab"
             }
           }
         ]
@@ -99,7 +95,6 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "MANUAL.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -118,7 +113,6 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "MANUAL.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
@@ -161,7 +155,6 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "MANUAL.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -188,8 +181,9 @@
       "bases:Create new base": false
     }
   },
-  "active": "dfaca58e81f1795f",
+  "active": "6dce4b9cea1a1399",
   "lastOpenFiles": [
+    "MANUAL.md",
     "docs/img/lfos.png",
     "lib/gui/lfoview.scd",
     "lib/lfos.scd"

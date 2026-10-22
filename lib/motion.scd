@@ -17,10 +17,12 @@
 	~running = true;
 	~tracks.do { |t| ~startTrack.(t) };
 	~startEvents.();
+	fork { ~sessionGo.() };
 };
 
 ~stop = {
 	~running = false;
+	~sessionPause.();
 	~eventTask.stop;
 	~tracks.do { |t|
 		~stopTrack.(t);

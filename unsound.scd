@@ -81,6 +81,7 @@ if (s.serverRunning) {
 	~returnOrder.do { |name| ~buildTrack.(~tracks[name]) };
 	~buildTrack.(~masterTrack);
 	~startTape.();
+	~sessionRebuild.();
 };
 
 s.options.numInputBusChannels = 0;   // no mic needed, and it avoids input/output sample-rate mismatches

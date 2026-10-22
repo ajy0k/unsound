@@ -18,7 +18,8 @@
 		["MIDI learn + encoder", "maps a hardware knob to that encoder: it follows focus everywhere"],
 		["MIDI learn + ◀ ▶ / track / glide / cut", "map pads or buttons on a controller to them"]]],
 	["the machine", [
-		["keep  /  return", "save everything on the tape (the last 15 minutes) to ~/Music/unsound/ · shift-return: the last minute"],
+		["●", "everything you play is recorded to ~/Music/unsound/sessions (click to open it)"],
+		["keep  /  return", "save the last 15 minutes as a clip (and mark the moment in the session) · shift-return: the last minute"],
 		["takeover  /  hold '", "push the focused track toward infinity while everything else ducks · ∞ = all the way while held"],
 		["the wall", "the background layer: pick a wall (crossfades), fade it in / out, shape it with band"],
 		["digital (browser)", "bitmask, aliaser, bins, codec, overflow, skip: things a pedal can't do"]]],

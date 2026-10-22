@@ -282,7 +282,23 @@
 			true
 		}
 	});
-	HLayout(shown, keep).spacing_(2)
+	HLayout(~sessionButton.(), shown, keep).spacing_(2)
+};
+
+// ● and the session's playing time; click to open the sessions folder.
+~sessionButton = {
+	var b = Button().canFocus_(false).fixedWidth_(74).font_(Font.monospace(9))
+		.toolTip_("everything you play is recorded to ~/Music/unsound/sessions (click to open it)\nkeep drops a marker in the session's .txt");
+	var show = {
+		var secs = (~sessionTotal ? 0).asInteger, on = ~sessionPart.notNil;
+		b.states = [["% %:%:%".format(if (on) { "●" } { "○" }, secs div: 3600, ((secs div: 60) % 60).asString.padLeft(2, "0"),
+			(secs % 60).asString.padLeft(2, "0")), if (on and: { ~running == true }) { Color.white } { Color.grey(0.6) },
+			if (on and: { ~running == true }) { Color(0.6, 0.1, 0.1) } { Color.grey(0.2) }]];
+	};
+	show.();
+	b.action = { ~revealSessions.() };
+	~bindings.add({ if (b.isClosed) { false } { show.(); true } });
+	b
 };
 
 // Takeover: a slider (no numbers) for the selected track, and ∞ (hold) to push it all the way.

@@ -29,7 +29,7 @@ returns: **A** echo (overdriven), **B** space (overdriven), **C** freq shift, **
 | # | what | how |
 |---|---|---|
 | 1 | **browser** | everything you can add. **Double-click** = add to the focused track (instruments make a new track). **Drag** onto a pad, the chain, or onto a device to insert before it. Hover for a description. |
-| 2 | **top bar** | play, bpm, tape + **keep**, **takeover**, glide / cut / back, distance, glide/cut every so often, chaos, infect / cure, MIDI learn, save / load, **studio**, **?** |
+| 2 | **top bar** | play, bpm, **●** session time, tape + **keep**, **takeover**, glide / cut / back, distance, glide/cut every so often, chaos, infect / cure, MIDI learn, save / load, **studio**, **?** |
 | 3 | **pads** | one per track. Click = focus. **M** mute, **S** solo, knob = volume. Returns and master on the right, then **+ return**. |
 | 4 | **screen** | the focused track's own view: XY pad, drum grid, roll, tape, the wall's recipes… |
 | 5 | **focus column** | track name, **⧉** (open the track in its own window), **dice**, **new** sound, a scope, the track's every-so-often sliders, and the **8 encoders** |
@@ -128,15 +128,23 @@ In the top bar, the orange-outlined **takeover** slider and **∞**:
 Takeover follows focus: click another pad and it moves there. Returns aren't ducked, so the
 taken-over track's echoes still come through.
 
-### Tape and keep
+### The session, tape and keep
 
-unsound is always recording what you hear: the last **15 minutes**, in memory. The top bar shows
-how much is on the tape.
+**Everything you play is recorded to disk**, the whole time the transport runs:
+`~/Music/unsound/sessions/session-<date>-1.wav`, `-2.wav`… (24-bit, about 1 GB an hour). It starts
+on the first play and pauses a few seconds after you stop (so tails are kept). Every 30 minutes it
+starts a new part, overlapping the last one by two seconds, so nothing falls in between. The **●**
+in the top bar shows the session's playing time; click it to open the folder.
 
-- **keep** (or **return**): save everything on the tape to `~/Music/unsound/keep-<date>.wav` (24-bit).
+On top of that, the last **15 minutes** are always in memory (the tape), for quick clips:
+
+- **keep** (or **return**): save what's on the tape to `~/Music/unsound/keep-<date>.wav` (24-bit),
+  and drop a marker in the session's notes (`session-<date>.txt`: which part, how far in) so you can
+  find that moment in the long recording.
 - **shift-return**: keep just the last minute.
 
-So play for half an hour without thinking about it, then keep it and cut it up later.
+So play for as long as you like without thinking about recording; nothing is lost.
+(`~sessionOn = false` in `play.scd` before loading turns the session recording off.)
 (The studio window also has the old **● record** button for a classic start/stop recording.)
 
 ---
