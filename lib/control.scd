@@ -12,7 +12,8 @@
 //   /  dice the selected track (instrument + devices)     I  infect: scatter mods     \  cure: remove all mods
 //   B  hold: stutter every stutter device on the master while held
 //   V  hold: freeze every freeze device on the master while held
-//   Q  lurch      C  capture a scene      [ / ]  launch previous / next scene
+//   Q  glide somewhere new    =  cut there instantly    -  back (undo)
+//   C  capture a scene      [ / ]  launch previous / next scene
 //   , / .        master tempo down / up
 //
 // MIDI: notes play the selected track. MIDI learn: switch on "learn" in the transport, touch a knob
@@ -72,20 +73,23 @@
 		if (mod.isShift) { ~nudgeTempo.(t, 1 / 1.03) } { ~tset.(~selected, \level, t[\level] / 1.12) }
 	}
 	{ key == 16r1000001 } { ~detailMode = switch (~detailMode) { \clip } { \devices } { \devices } { \mods } { \clip }; ~refreshDetail.() }
+	{ char == $? } { { ~showHelp.() }.defer }
 	{ char == $n } { ~repatch.(~selected) }
-	{ char == $/ } { ~diceTrack.(~selected) }
+	{ char == $/ } { ~pushHistory.(); ~diceTrack.(~selected) }
 	{ char == $i } { ~infect.(3) }
 	{ char == $\\ } { ~cure.() }
 	{ char == $m } { ~tset.(~selected, \on, t[\on].not) }
 	{ char == $r } { ~resync.(~selected) }
 	{ char == $b } { ~holdMaster.(\stutter, true) }
 	{ char == $v } { ~holdMaster.(\freeze, true) }
-	{ char == $q } { ~lurch.() }
+	{ char == $q } { ~glide.() }
+	{ char == $= } { ~cut.() }
+	{ char == $- } { ~back.() }
 	{ char == $c } { ~capture.() }
 	{ char == $[ } { ~launch.(((~currentScene ? 0) - 1).max(0)) }
 	{ char == $] } { ~launch.(((~currentScene ? -1) + 1).min(~scenes.size - 1)) }
-	{ char == $, } { ~bpm.(~tempo - 1) }
-	{ char == $. } { ~bpm.(~tempo + 1) };
+	{ char == $, } { ~bpm.(~tempo / 1.03) }
+	{ char == $. } { ~bpm.(~tempo * 1.03) };
 };
 
 ~keyUp = { |view, char, mod, unicode, keycode, key|
@@ -100,7 +104,7 @@
 ~nudgeTempo = { |t, factor|
 	if (t.notNil and: { t[\kind] == \inst }) {
 		if (t[\sync] != false) { t[\bpm] = ~tempo; ~tset.(t[\name], \sync, false) };
-		~tset.(t[\name], \bpm, (t[\bpm] * factor).clip(20, 400));
+		~tset.(t[\name], \bpm, (t[\bpm] * factor).max(0.1));
 	};
 };
 
@@ -185,4 +189,25 @@
 	{ tg[\hold].notNil } { tg[\hold].value(down) }
 	{ tg[\toggle].notNil } { if (down) { tg[\toggle].value } }
 	{ tg[\set].notNil } { if (down) { tg[\set].value(tg[\spec].map(1 - tg[\spec].unmap(tg[\get].value).round)) } };
+};
+
+// ---------------------------------------------------------------- saving MIDI maps
+
+// Knob mappings are saved by the knob's id; toggles and pads are not saved (yet).
+~midiState = {
+	var out = List[];
+	~midiMap.keysValuesDo { |k, m|
+		var tg = m[\target];
+		if (tg[\tid].notNil and: { tg[\spec].notNil }) {
+			out.add((key: k, tid: tg[\tid], spec: tg[\spec].asCompileString, relative: m[\relative], button: m[\button]));
+		};
+	};
+	out.asArray
+};
+
+~applyMidi = { |list|
+	list.do { |e|
+		var tg = ~resolveTarget.(e[\tid], e[\spec].interpret);
+		if (tg.notNil) { ~midiMap[e[\key]] = (target: tg, relative: e[\relative], button: e[\button]) };
+	};
 };

@@ -13,7 +13,11 @@
 				++ params.collect { |p| [p[\key], t[p[\key]]] }.flatten, t[\src]);
 		},
 		repatch: { |t|
-			params.do { |p| if (p[\dice] != false) { ~tset.(t[\name], p[\key], p[\spec].map(1.0.rand)) } };
+			params.do { |p|
+				if (p[\dice] != false) {
+					~setOrHome.("t:%:%".format(t[\name], p[\key]), p[\spec], p[\spec].map(1.0.rand), { |x| ~tset.(t[\name], p[\key], x) });
+				};
+			};
 		},
 		mover: { |t|
 			var ps, hold;

@@ -69,7 +69,7 @@ Legend: ✅ working · 🟡 partly there · ⬜ not started
 
 ### 2. Devices
 - ✅ Insert chains on any track, return or master: add, bypass, reorder, remove
-- ✅ Browser with drag & drop (and + buttons): ~50 presets in categories, plus whole chains
+- ✅ Browser: double-click adds to the end of the chain, drag & drop places; ~50 presets + whole chains
 - ✅ Master limiter pinned last, always; every instrument starts with its own overdrive variation
 - ✅ 27 devices: drive (8 modes), crush, dirt, filter, eq, comb, resonator, ring, shift, space, echo, chorus,
   tape, pitch, reverse, smear, stutter, chop, freeze, scramble, blur, feedback, compressor, gate, width, limiter
@@ -88,11 +88,17 @@ Legend: ✅ working · 🟡 partly there · ⬜ not started
 - ✅ Mods view (tab) listing every mod; infect (I) scatters mods across the set; cure (\\) removes all
 - ✅ Mystery "?" knob on every device: sweeps a hidden random handful of its params
 - ✅ Dice (/) per track and per device
-- ⬜ Mod sources from audio: envelope follower / pitch / onsets of one track modulating another
-- ⬜ Mods saved in scenes and sets (they're runtime-only right now)
+- ✅ "alive": new tracks/devices arrive with mods; the master is never automated (hands only)
+- ✅ Mod sources: own shape, follow any track's loudness, or driven by another mod; bipolar depth (ducking)
+- ✅ Mods saved in scenes and sets (re-linked on load, including mods on mods)
+- ✅ **Lurch toward / switch on a dime**: glide (Q) and cut (=) to a random destination, `distance` knob,
+  back (-) through a 50-step history
+- ✅ **Events at intervals**: every N bars, by chance — glide, cut, back, dice, drop-outs, solos
+- ⬜ Mod sources from audio features beyond loudness: onsets, brightness, pitch
+- ⬜ Lurch toward a *chosen* destination: a scene, a saved "mood", or "more like this track"
+- ⬜ Event kinds editable in the GUI (weights per kind)
 - ⬜ Mods that change shape by themselves; mods that spawn/kill other mods ("ecology")
 - ⬜ "Temperature": one knob that scales every mod depth at once
-- ⬜ Randomize-with-memory: undo the last dice; "go back to how it sounded 30 s ago"
 - ⬜ Visual feedback that feels alive: knob trails, a big scope/spectrum, track activity glows
 
 ### 3. Instruments
@@ -100,6 +106,9 @@ Legend: ✅ working · 🟡 partly there · ⬜ not started
   breath, fever, rot, body); XY pad; spasms
 - ✅ **bytebeat**: 8 integer formulas on a counter, a/b/c shifts, rate (keys transpose it)
 - ✅ **hum**: self-oscillating four-delay feedback network (tension, size, tint, unrest, swell)
+- ✅ **drums**: 8 lanes, polymeter lane lengths, 5 generator styles, mutation-that-drifts-home, synth or sample per lane
+- ⬜ drums: per-lane sends/outputs, accents/velocity, fills every N bars, lanes stealing hits from each other
+- ⬜ bytebeat (the bitmeister, a favourite): formula morphing, two counters at different rates, live formula editing
 - ⬜ More noise sources: circuit-bent oscillators, Gendy swarms, granular noise from the corpus run at audio rate,
   "radio" (scanning filtered noise + bursts), feedback between tracks (a track's output as another's input)
 - ✅ **grains**: corpus walk or stick to one file (with `stray` and `hop` per bar); random or scanning playhead; size, pitch, reverse, click,
@@ -154,10 +163,14 @@ Legend: ✅ working · 🟡 partly there · ⬜ not started
 - ⬜ **Song-from-a-folder**: drums, bass and keys all pulled from the folder by role
 
 ### 8. Playing live
+- ✅ BPM unlimited (min wait 2 ms); per-track bpm unlimited too
+- ✅ Record button with timer → ~/Music/unsound/unsound-<date>.wav (24-bit), "show" reveals it
+- ✅ MIDI knob mappings saved with the set
 - ✅ Record master to disk; save/load whole sets (tracks, devices, clips, sends, scenes, song)
+- ✅ Help window (? key / button) listing every shortcut
 - ✅ Computer keyboard: notes on the selected track (A–; like Ableton), transport, track select, holds, scenes
 - ✅ MIDI: notes play the selected track; MIDI learn for any knob/toggle/hold; relative jog wheels detected
-- ⬜ Save MIDI mappings with the set; controller templates (Launchpad grid → scenes/tracks, DJ deck layout)
+- ⬜ Controller templates (Launchpad grid → scenes/tracks, DJ deck layout)
 - ⬜ Hold-to-play sustain from keys/MIDI (note length = how long you hold)
 - ⬜ Keyboard "parameter mode": focus a device and turn its knobs with keys
 - ⬜ Stem recording; CPU guard

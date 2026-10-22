@@ -397,6 +397,7 @@
 		~buildDevice.(t, d);
 		~orderDevices.(t);
 		if (~running == true) { ~startDevice.(t, d) };
+		if (~alive == true and: { ~booted == true } and: { t[\kind] != \master } and: { d[\pinned] != true }) { ~infectDevice.(t, d) };
 		~refreshDetail.();
 		d
 	}
@@ -445,7 +446,8 @@
 	t[\devices].do { |d| d[\routine].stop; d[\synth].free; ~unmodPrefix.("d:%:".format(d[\uid])) };
 	t[\devices] = List.newFrom(descs.collect { |x|
 		var d = (type: x[\type], on: x[\on], params: x[\params].copy, label: x[\label], pinned: x[\pinned],
-			uid: ~nextUid = (~nextUid ? 0) + 1);
+			uid: x[\uid] ?? { ~nextUid = (~nextUid ? 0) + 1 });
+		~nextUid = (~nextUid ? 0).max(d[\uid]);
 		~rollMystery.(d);
 		~buildDevice.(t, d);
 		if (~running == true) { ~startDevice.(t, d) };

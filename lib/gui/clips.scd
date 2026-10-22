@@ -254,7 +254,12 @@
 ~modsView = {
 	var cards = ~mods.collect { |m|
 		var tg = m[\target];
+		var sources = [\shape] ++ ~voiceOrder.collect { |n| "follow:" ++ n }
+			++ ~mods.reject { |x| x === m }.collect { |x| "mod:" ++ x[\id] };
+		var srcLabels = ["own shape"] ++ ~voiceOrder.collect { |n| "follows " ++ n }
+			++ ~mods.reject { |x| x === m }.collect { |x| "driven by " ++ x[\target][\name] };
 		~panel.(tg[\name], Color(0.8, 0.8, 0.85), VLayout(
+			~menu.(sources, { m[\source] }, { |x| m[\source] = x }, srcLabels),
 			HLayout(
 				~menu.(~modShapes, { m[\shape] }, { |x| m[\shape] = x }),
 				~knob.("rate", m[\rateTarget][\spec], m[\rateTarget][\get], m[\rateTarget][\set], 40, ~accent,
@@ -270,4 +275,99 @@
 		~row.(~button.("infect (I)", { ~infect.(4) }), ~button.("cure all (\\)", { ~cure.() }),
 			~lbl.("% mods running · right-click any knob anywhere to add one · right-click rate/depth for mods on mods".format(~mods.size)))
 	] ++ grid ++ [nil]))))
+};
+
+// ---------------------------------------------------------------- drums
+
+~laneH = 52;
+
+// One row per lane: click a cell to toggle a hit, right-click to end the lane there (its length),
+// drag across to paint. Darker cells are past the lane's end. Outline = mutation added, dot = removed.
+~drumGrid = { |t|
+	var lanes = t[\lanes], paint;
+	var view = UserView().fixedHeight_(~laneH * lanes.size).canFocus_(false).background_(Color.grey(0.08));
+	var cell = { |uv, x, y| [(x / (uv.bounds.width / 32)).floor.asInteger.clip(0, 31), (y / ~laneH).floor.asInteger.clip(0, lanes.size - 1)] };
+	view.drawFunc = { |uv|
+		var w = uv.bounds.width / 32;
+		lanes.do { |ln, row|
+			var y = row * ~laneH;
+			32.do { |i|
+				var r = Rect(i * w + 2, y + 3, w - 4, ~laneH - 6), inside = i < ln[\len];
+				Pen.fillColor = case
+				{ inside.not } { Color.grey(0.1) }
+				{ i % 4 == 0 } { Color.grey(0.25) }
+				{ Color.grey(0.17) };
+				Pen.fillRect(r);
+				if (inside) {
+					if (ln[\pat][i] == 1) { Pen.fillColor = if (ln[\mute]) { Color.grey(0.4) } { t[\color] }; Pen.fillRect(r) };
+					if (ln[\live][i] == 1 and: { ln[\pat][i] == 0 }) {
+						Pen.strokeColor = t[\color]; Pen.width = 2; Pen.strokeRect(r.insetBy(3, 3));
+					};
+					if (ln[\live][i] == 0 and: { ln[\pat][i] == 1 }) {
+						Pen.fillColor = Color(0, 0, 0, 0.55); Pen.fillOval(Rect.aboutPoint(r.center, 4, 4));
+					};
+					if (ln[\pos] == i) { Pen.fillColor = Color(1, 1, 1, 0.25); Pen.fillRect(r) };
+				};
+			};
+			Pen.fillColor = Color.grey(0.5);
+			Pen.fillRect(Rect(ln[\len] * w - 1, y + 2, 2, ~laneH - 4));
+		};
+	};
+	view.mouseDownAction = { |uv, x, y, mod, bn|
+		var c = cell.(uv, x, y), ln = lanes[c[1]];
+		if (bn == 1 or: { mod.isAlt }) { ln[\len] = c[0] + 1; paint = nil } {
+			paint = 1 - ln[\pat][c[0]];
+			ln[\pat][c[0]] = paint;
+			ln[\live][c[0]] = paint;
+		};
+		uv.refresh;
+		nil
+	};
+	view.mouseMoveAction = { |uv, x, y|
+		var c = cell.(uv, x, y), ln = lanes[c[1]];
+		if (paint.notNil) { ln[\pat][c[0]] = paint; ln[\live][c[0]] = paint; uv.refresh };
+		nil
+	};
+	view.mouseUpAction = { paint = nil; nil };
+	~animated.add({ if (view.isClosed) { false } { view.refresh; true } });
+	view
+};
+
+~laneRow = { |t, ln, i|
+	var k = { |key, label|
+		~knob.(label, ~laneSpecs[key], { ln[key] }, { |x| ln[key] = x }, 20, t[\color],
+			"l:%:%:%".format(t[\name], i, key), "% % %".format(t[\name], ln[\name], key))
+	};
+	View().fixedHeight_(~laneH).layout_(HLayout(
+		Button().canFocus_(false).fixedWidth_(56).states_([[ln[\name].asString, Color.black, t[\color]], [ln[\name].asString, Color.grey(0.7), Color.grey(0.25)]])
+			.value_(ln[\mute].binaryValue).action_({ |b| ln[\mute] = b.value == 1 }),
+		~toggle.("smp", { ln[\src] == \sample }, { |x|
+			ln[\src] = if (x) { ln[\grain] = ln[\grain] ?? { ~pickDrumGrain.() }; \sample } { \synth };
+		}, Color(0.5, 0.8, 1)).fixedWidth_(36),
+		Button().canFocus_(false).fixedWidth_(30).states_([["gen"]]).action_({ ~genLane.(ln, i, t[\style] ? \euclid) }),
+		k.(\level, "lvl"), k.(\pitch, "pitch"), k.(\decay, "dec"), k.(\tone, "tone"),
+		k.(\mutate, "mut"), k.(\busy, "busy"), k.(\chance, "prob"), k.(\ratchet, "rat"), k.(\hop, "hop"),
+		nil
+	).margins_(0).spacing_(0))
+};
+
+~drumClip = { |t|
+	VLayout(
+		~row.(
+			~lbl.("style"), ~menu.(~drumStyles, { t[\style] }, { |x| t[\style] = x }),
+			~button.("generate kit", { ~genKit.(t, t[\style]) }),
+			~button.("random style", { ~genKit.(t) }),
+			~button.("keep variation", { t[\lanes].do { |ln| ln[\pat] = ln[\live].copy } }),
+			~button.("clear", { t[\lanes].do { |ln| ln[\pat] = 0 ! 32; ln[\live] = 0 ! 32 } }),
+			~button.("new samples", { ~repatch.(t[\name]) }),
+			~tknob.(t, \swing, [0, 0.4], "swing", 30),
+			~tknob.(t, \speed, [0.25, 4, \exp], "speed", 30),
+			~lbl.("click = hit · drag = paint · right-click = lane length")
+		),
+		HLayout(
+			VLayout(*(t[\lanes].collect { |ln, i| ~laneRow.(t, ln, i) } ++ [nil])).spacing_(0),
+			[VLayout(~drumGrid.(t), nil), stretch: 1]
+		),
+		nil
+	)
 };

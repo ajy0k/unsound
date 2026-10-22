@@ -28,16 +28,23 @@
 		if (~runtimeKeys.includes(k).not and: { ~storable.(v) }) { st[k] = v.copy };
 	};
 	if (t[\roll].notNil) { st[\roll] = t[\roll].deepCopy };
+	if (t[\lanes].notNil) {
+		st[\lanes] = t[\lanes].collect { |ln|
+			var e = ();
+			ln.keysValuesDo { |k, v| if ([\grain, \pos, \flash].includes(k).not) { e[k] = v.copy } };
+			e
+		};
+	};
 	st[\sends] = ();
 	~returnOrder.do { |r, i| st[\sends][r] = t[\sends][i] };
 	st[\devices] = t[\devices].collect { |d|
-		(type: d[\type], on: d[\on], params: d[\params].copy, label: d[\label], pinned: d[\pinned])
+		(type: d[\type], on: d[\on], params: d[\params].copy, label: d[\label], pinned: d[\pinned], uid: d[\uid])
 	}.asArray;
 	st
 };
 
 ~snapshot = {
-	(tempo: ~tempo, chaos: ~m[\chaos], scaleName: ~scaleName, key: ~key,
+	(tempo: ~tempo, chaos: ~m[\chaos], scaleName: ~scaleName, key: ~key, mods: ~modState.(),
 		tracks: (~voiceOrder ++ ~returnOrder ++ [\master]).collect { |n| ~trackState.(~tracks[n]) }.asArray)
 };
 
@@ -73,6 +80,7 @@
 				case
 				{ [\name, \kind, \type, \devices, \sends].includes(k) } { }
 				{ k == \roll } { t[\roll] = v.deepCopy }
+				{ k == \lanes } { v.do { |lv, i| t[\lanes][i] !? { |ln| lv.keysValuesDo { |kk, vv| ln[kk] = vv.copy } } } }
 				{ k == \pat } { t[\pat] = v.copy; t[\live] = v.copy }
 				{ [\carWave, \modWave].includes(k) } { ~setWave.(t, k, v.copy) }
 				{ beats > 0 and: { v.isNumber } and: { t[k].isNumber } and: { v != t[k] } } {
@@ -89,6 +97,7 @@
 			if (~sameChain.(t, ts[\devices])) {
 				t[\devices].do { |d, i|
 					var target = ts[\devices][i];
+					target[\uid] !? { |u| d[\uid] = u; ~nextUid = (~nextUid ? 0).max(u) };
 					if (d[\on] != target[\on]) { ~dbypass.(d) };
 					target[\params].keysValuesDo { |k, v|
 						if (beats > 0 and: { v.isNumber } and: { v != d[\params][k] }) {
@@ -99,6 +108,9 @@
 			} { ~setChain.(t[\name], ts[\devices]) };
 		};
 	};
+
+	// mods last, once every device they point at exists
+	state[\mods] !? { |ms| ~applyMods.(ms) };
 
 	~morph.stop;
 	if (glides.notEmpty) {
@@ -156,7 +168,8 @@
 	path = path ?? { ~setsDir +/+ Date.getDate.stamp ++ ".unsound" };
 	File.mkdir(path.dirname);
 	f = File(path, "w");
-	f.write((state: ~snapshot.(), scenes: ~scenes.asArray, song: ~song.asArray, morphBeats: ~morphBeats).asCompileString);
+	f.write((state: ~snapshot.(), scenes: ~scenes.asArray, song: ~song.asArray, morphBeats: ~morphBeats,
+		midi: ~midiState.(), events: ~events, lurchDistance: ~lurchDistance).asCompileString);
 	f.close;
 	"unsound: saved %".format(path).postln;
 	path
@@ -168,7 +181,10 @@
 		~scenes = List.newFrom(set[\scenes]);
 		~song = List.newFrom(set[\song]);
 		~morphBeats = set[\morphBeats] ? 4;
+		set[\events] !? { |e| ~events = e };
+		~lurchDistance = set[\lurchDistance] ? ~lurchDistance;
 		~applyState.(set[\state], 0, true);
+		set[\midi] !? { |m| ~applyMidi.(m) };
 		~refreshGui.();
 		"unsound: loaded %".format(path).postln;
 	};

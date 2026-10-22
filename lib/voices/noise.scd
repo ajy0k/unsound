@@ -1,7 +1,7 @@
 // Noise instruments. Knob names are deliberately vague: each one moves several things at once.
 //
 //   creature  chaotic generators (Gendy, Latoocarfian, feedback FM, crackle) tangled together
-//   bytebeat  integer formulas on a counter, the 8-bit way; `a b c` are shift amounts
+//   bytebeat  (the bitmeister) 16 integer formulas on a counter, the 8-bit way; `a b c` are shift amounts
 //   hum       a self-oscillating four-delay feedback network
 
 ~defs.add({
@@ -36,7 +36,15 @@
 			(t * (t >> ai)).bitXor(t >> bi),
 			(t * ((t >> 9) | (t >> ai))) & (t >> bi),
 			(t & (t >> ai)) * ci,
-			((t >> ai) & (t >> bi)) * (t & (t >> ci))
+			((t >> ai) & (t >> bi)) * (t & (t >> ci)),
+			((t >> ai) | (t * ci)) & (t >> bi),
+			(t >> ai).bitXor(t >> bi) * (t >> ci),
+			((t * ci) >> ai) | (t >> bi),
+			t * (((t >> 12) | (t >> ai)) & 63 & (t >> bi)),
+			((t * 5) & (t >> ai)) | ((t * 3) & (t >> bi)),
+			(t & (t >> ai) & (t >> bi)) * ci,
+			((t >> ai) % (ci + 2)) * (t >> bi),
+			(t * ((t >> ai) % (bi + 3))).bitXor(t >> ci)
 		];
 		var v = Select.ar(formula.round.clip(0, forms.size - 1), forms) & 255;
 		var sig = LeakDC.ar((v / 127.5) - 1);
@@ -65,7 +73,7 @@
 
 ~voiceTypes[\bytebeat] = ~droneType.(\uBytebeat, Color(0.45, 0.9, 0.3), [
 	~p.(\rate, 8000, [500, 32000, \exp]), ~p.(\a, 5, [1, 16, \lin, 1]), ~p.(\b, 8, [1, 16, \lin, 1]),
-	~p.(\c, 3, [1, 16, \lin, 1]), ~p.(\formula, 0, [0, 7, \lin, 1]), ~p.(\width, 0.5, [0, 1])
+	~p.(\c, 3, [1, 16, \lin, 1]), ~p.(\formula, 0, [0, 15, \lin, 1]), ~p.(\width, 0.5, [0, 1])
 ], [\a, \b], [[\filter, (cutoff: 5000, res: 0.3, drift: 0.5)], [\echo, (time: 0.375, mix: 0.2)]],
 { |t, midi| ~tset.(t[\name], \rate, 8000 * (midi - 60).midiratio) });
 

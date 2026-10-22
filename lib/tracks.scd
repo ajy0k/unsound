@@ -129,6 +129,7 @@ OSCdef(\uMeter, { |msg|
 		~buildTrack.(t);
 		(it[\chain] ? []).do { |c| ~dev.(t[\name], c[0], nil, c[1]) };
 		if (~running == true) { ~startTrack.(t) };
+		if (~alive == true and: { ~booted == true }) { ~infectTrack.(t, 2) };
 		~selected = t[\name];
 		~refreshGui.();
 		t[\name]
@@ -248,7 +249,7 @@ OSCdef(\uMeter, { |msg|
 ~vwait = { |t, beats|
 	var secs = ~beatSecs.(t, beats);
 	~driftTempo.(t, secs);
-	(secs * ~clock.tempo).wait;
+	(secs.max(0.002) * ~clock.tempo).wait;
 };
 
 // Restart a track's mover on the next bar, back in phase with the master.

@@ -14,6 +14,8 @@ Written in plain SuperCollider (3.14), with no quarks.
 
 ## Playing it without the mouse
 
+Press **?** (or the ? button, top right) for every shortcut.
+
 The computer keyboard works like Ableton's: **A W S E D F T G Y H U J K O L P ;** play the selected
 track, **Z/X** change octave, **space** plays/stops, **1–9** and **←→** select tracks, **↑↓** volume
 (⇧ = that track's tempo), **tab** Clip/Devices, **N** new sound, **M** mute, **R** resync,
@@ -26,10 +28,14 @@ are detected and nudge instead of jump.
 
 ## The window
 
-- **Browser** (left): instruments, ~50 effect presets in categories, and whole chains. Drag onto a
-  mixer strip, the device area, or onto a device to insert before it. Or press **+** to add to
-  the selected track.
-- **Transport:** play, bpm, chaos, scale and key, lurch, rec, MIDI learn, save/load set.
+- **Browser** (left): instruments, ~50 effect presets in categories, and whole chains.
+  **Double-click** to add to the end of the selected track's chain, or drag onto a mixer strip,
+  the device area, or onto a device to insert before it.
+- **Transport:** play, bpm (no limits: at absurd tempos rhythm turns into pitch), ● record
+  (what you hear, to `~/Music/unsound/`, 24-bit wav; "show" reveals it), chaos, scale and key,
+  **glide / cut / back** (lurch toward somewhere new over the morph time, jump there on a dime, undo),
+  **distance** (how far), **events** (every N bars, by chance, something big happens), new sounds,
+  infect / cure / alive, MIDI learn, save/load set.
 - **Scenes** (right of master): capture, launch with a morph time, update, and play a song (a list
   of scenes and bar counts).
 - **Mixer:** one strip per track. Each strip has sends to every return, pan, a meter and fader,
@@ -55,9 +61,18 @@ Mutation and drift vary what's played around your settings. They never overwrite
 
 **Make it move:** right-click (or alt-click) any knob to give it a modulator; right-click again to
 remove it. The **mods** tab lists them all, and a mod's rate and depth are knobs too, so you can
-modulate the modulators. **infect** (I) scatters random mods over the set, **cure** (\\) removes
+modulate the modulators. A mod can run its own shape, **follow another track's loudness**, or be
+**driven by another mod**; negative depth inverts (ducking). Mods and MIDI mappings are saved
+with scenes and sets. **infect** (I) scatters random mods over the set, **cure** (\\) removes
 them, **dice** (/) randomizes a track, and every device has a mystery **?** knob that sweeps a
 hidden handful of its settings.
+
+**alive** (transport): new tracks and devices arrive already moving. The master never gets
+automatic movement; it's yours to play by hand.
+
+**drums:** eight lanes (kick, snare, hat, open, clap, rim, perc, glitch), each with its own length
+(right-click a cell to end the lane there), generated patterns in five styles (four, broken,
+euclid, sparse, chaos), mutation that drifts home, and a synth or sampled sound per lane.
 
 **Noise instruments:** `creature` (chaotic oscillators tangled together), `bytebeat` (8-bit integer
 formulas), and `hum` (a self-oscillating feedback network). They drone continuously, spasm by
@@ -77,7 +92,7 @@ themselves, and have an XY pad in their clip view.
 | `lib/drones.scd` | shared shape of the continuous noise instruments |
 | `lib/scenes.scd` | scenes, morphing, song, save/load sets |
 | `lib/control.scd` | computer keyboard and MIDI (notes, learn, DJ controllers) |
-| `lib/voices/*.scd` | instruments: `creature`, `bytebeat`, `hum` (noise.scd), `grains`, `kick`, `keys`, `fm` |
+| `lib/voices/*.scd` | instruments: `creature`, `bytebeat`, `hum` (noise.scd), `drums`, `grains`, `kick`, `keys`, `fm` |
 | `lib/motion.scd` | transport, tempo, lurch, recording |
 | `lib/gui/*.scd` | widgets (drawn knobs), browser, clip views, mixer + scenes, main window |
 

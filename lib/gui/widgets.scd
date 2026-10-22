@@ -197,6 +197,16 @@
 	{ \item } { if (name.notNil) { ~addItem.(name, obj[\item], index) } };
 };
 
+// A ScrollView that scrolls sideways with the ordinary scroll wheel (no shift needed).
+~hscroll = { |sv|
+	sv.mouseWheelAction = { |v, x, y, mod, dx, dy|
+		var o = v.visibleOrigin;
+		v.visibleOrigin = Point((o.x - (dy * 3) - (dx * 3)).max(0), o.y);
+		true
+	};
+	sv
+};
+
 ~startTick = {
 	~tick.stop;
 	~tick = Routine({

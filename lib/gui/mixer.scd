@@ -28,22 +28,23 @@
 ~sendGrid = { |t|
 	var cells = ~returnOrder.collect { |r, i|
 		if (t[\kind] == \master or: { r == t[\name] }) {
-			View().fixedSize_(Size(44, 58))
+			View().fixedSize_(Size(40, 52))
 		} {
-			~knob.("→ " ++ r, [0, 1], { t[\sends][i] }, { |x| ~send.(t[\name], r, x) }, 28, ~tracks[r][\color],
+			~knob.(r.asString, [0, 1], { t[\sends][i] }, { |x| ~send.(t[\name], r, x) }, 22, ~tracks[r][\color],
 				"s:%:%".format(t[\name], r), "% send %".format(t[\name], r))
 		}
 	};
-	VLayout(*(cells.clump(3).collect { |row| HLayout(*(row ++ [nil])).spacing_(0) } ++ [nil])).spacing_(0)
+	VLayout(*(cells.clump(2).collect { |row| HLayout(*(row ++ [nil])).spacing_(0).margins_(0) } ++ [nil])).spacing_(0).margins_(0)
 };
 
 ~mixerColumn = { |t|
 	var name = t[\name], color = t[\color] ? Color.grey(0.6);
 	var title = if (t[\kind] == \return) { name.asString ++ " " ++ (t[\devices].first !? { |d| d[\label] ? d[\type] } ? "") } { name.asString };
-	var titleButton = Button().canFocus_(false).states_([[title, Color.black, color]]).action_({ ~select.(name) });
-	var fader = Slider().canFocus_(false).orientation_(\vertical).fixedSize_(Size(30, 130))
+	var titleButton = Button().canFocus_(false).font_(Font(Font.defaultSansFace, 10, true))
+		.states_([[title, Color.black, color]]).action_({ ~select.(name) });
+	var fader = Slider().canFocus_(false).orientation_(\vertical).fixedSize_(Size(24, 104))
 		.value_(~levelSpec.unmap(t[\level])).action_({ |sl| ~tset.(name, \level, ~levelSpec.map(sl.value)) });
-	var db = StaticText().align_(\center).font_(Font.monospace(10));
+	var db = StaticText().align_(\center).font_(Font.monospace(9));
 	var tempo = StaticText().align_(\center).font_(Font.monospace(9));
 	var col;
 	~titleButtons[name] = titleButton;
@@ -52,27 +53,28 @@
 			fader.value = ~levelSpec.unmap(t[\level]);
 			db.string = if (t[\level] < 0.001) { "-inf" } { t[\level].ampdb.round(0.1).asString ++ " dB" };
 			if (t[\kind] == \inst) {
-				tempo.string = ~liveBpm.(t).round(0.1).asString ++ " bpm";
+				tempo.string = ~liveBpm.(t).round(0.1).asString;
 				tempo.stringColor = if (t[\sync] != false and: { (t[\tempoDrift] ? 0) == 0 } and: { t[\speed] == 1 }) {
 					Color.grey(0.55) } { ~accent };
 			};
 			true
 		}
 	});
-	col = View().fixedWidth_(140).background_(Color.grey(0.16)).layout_(VLayout(
+	col = View().fixedWidth_(96).background_(Color.grey(0.16)).layout_(VLayout(
 		titleButton,
 		tempo,
 		[~sendGrid.(t), stretch: 1],
-		[~knob.("pan", [-1, 1], { t[\pan] }, { |x| ~tset.(name, \pan, x) }, 30, color, "t:%:pan".format(name), "% pan".format(name)), align: \center],
-		HLayout(nil, ~meterView.(t), fader, nil).spacing_(5),
-		db,
+		HLayout(
+			VLayout(~knob.("pan", [-1, 1], { t[\pan] }, { |x| ~tset.(name, \pan, x) }, 22, color, "t:%:pan".format(name), "% pan".format(name)), db, nil),
+			~meterView.(t), fader
+		).spacing_(2),
 		HLayout(*(
 			[~toggle.("on", { t[\on] }, { |x| ~tset.(name, \on, x) }, color)]
 			++ (if (t[\kind] == \inst) { [~toggle.("S", { t[\solo] }, { |x| ~tset.(name, \solo, x) }, Color(0.3, 0.6, 1))] } { [] })
 			++ (if (t[\kind] == \return) { [~toggle.("pre", { t[\pre] }, { |x| ~tset.(name, \pre, x) })] } { [] })
-			++ (if (t[\kind] != \master) { [Button().canFocus_(false).fixedWidth_(24).states_([["x"]]).action_({ ~remove.(name) })] } { [] })
-		)).spacing_(2)
-	).margins_(3).spacing_(3));
+			++ (if (t[\kind] != \master) { [Button().canFocus_(false).fixedWidth_(18).states_([["x"]]).action_({ ~remove.(name) })] } { [] })
+		)).spacing_(1)
+	).margins_(2).spacing_(2));
 	~dropTarget.(col, { name }, { nil })
 };
 
@@ -83,7 +85,7 @@
 	~sceneList = list;
 	~refreshScenes = { { ~fillScenes.() }.defer };
 	~fillScenes.();
-	View().fixedWidth_(190).background_(Color.grey(0.16)).layout_(VLayout(
+	View().fixedWidth_(170).background_(Color.grey(0.16)).layout_(VLayout(
 		StaticText().string_("SCENES").font_(Font(Font.defaultSansFace, 11, true)).stringColor_(Color.grey(0.7)),
 		~button.("+ capture (C)", { ~capture.() }),
 		HLayout(
@@ -119,5 +121,5 @@
 		++ [~mixerColumn.(~masterTrack)]
 	)).margins_(4).spacing_(4));
 	~dropTarget.(canvas, { ~selected }, { nil });
-	HLayout([ScrollView().canvas_(canvas), stretch: 1], ~sceneColumn.()).spacing_(4)
+	HLayout([~hscroll.(ScrollView().hasVerticalScroller_(false).canvas_(canvas)), stretch: 1], ~sceneColumn.()).spacing_(4)
 };

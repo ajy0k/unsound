@@ -13,7 +13,7 @@
 ~maxSecs = ~maxSecs ? 20;         // only read the first N seconds of each file
 ~gui = ~gui ? true;
 ~tempo = ~tempo ? 132;
-~startVoices = ~startVoices ? [\creature, \bytebeat, \hum, \grains, \kick];
+~startVoices = ~startVoices ? [\creature, \bytebeat, \hum, \grains, \drums];
 ~startReturns = ~startReturns ? [\space, \echo, \shift, \smear];
 
 ~m = (chaos: 0.4);   // the one global macro: widens every random walk, raises every probability
@@ -42,6 +42,7 @@ if (s.serverRunning) {
 	"lib/voices/keys.scd",
 	"lib/voices/fm.scd",
 	"lib/voices/noise.scd",
+	"lib/voices/drums.scd",
 	"lib/motion.scd",
 	"lib/gui/widgets.scd",
 	"lib/gui/clips.scd",
@@ -81,9 +82,11 @@ s.waitForBoot {
 	~buildGraph.();
 	s.sync;
 
-	// master: stutter → drifting filter → light drive → limiter (pinned: always there, always last)
-	~dev.(\master, \stutter);
-	~dev.(\master, \filter, nil, (drift: 0.3));
+	// master: stutter → filter → light drive → limiter (pinned: always there, always last).
+	// Nothing on the master moves by itself: it's for your hands.
+	~booted = false;
+	~dev.(\master, \stutter, nil, (auto: 0));
+	~dev.(\master, \filter);
 	~dev.(\master, \drive, nil, (mode: 0, gain: 1.5, mix: 0.3), "warmth");
 	~dev.(\master, \limiter)[\pinned] = true;
 	~startReturns.do { |type| ~addReturn.(type) };
@@ -92,6 +95,7 @@ s.waitForBoot {
 	~initMidi.();
 	~startMods.();
 	~infect.(6);   // start alive
+	~booted = true;
 	s.sync;
 
 	if (~gui) { { ~makeGui.() }.defer };
