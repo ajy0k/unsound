@@ -268,8 +268,12 @@
 	{ "box" } { ~boxTargets[parts[1].asInteger] }
 	{ "btn" } { ~btnTarget.(tid) }
 	{ "g" } {
+		if (parts[1] == "takeover") {
+			(tid: tid, name: "takeover", spec: ControlSpec(0, 1), get: { ~takeoverAmt }, set: { |x| ~setTakeover.(x) })
+		} {
 		(tid: tid, name: parts[1], spec: ControlSpec(0, 1), get: { ~events[("so" ++ parts[1].capitalize).asSymbol] ? 0 },
 			set: { |x| ~events[("so" ++ parts[1].capitalize).asSymbol] = x })
+		}
 	}
 	{ ~globalTargets.()[tid] };
 };

@@ -9,13 +9,19 @@
 
 ~help = [
 	["the box (default view)", [
-		["pads", "click = focus · double-click = mute · right-click = solo"],
+		["pads", "click = focus · M = mute (on the wall: fade in/out) · S = solo · knob = volume"],
+		["⧉", "open a device (or, top right, the whole track) in its own window; open as many as you like"],
 		["encoders", "the 8 small knobs right of the screen are the focused track's current page"],
 		["handle under the screen", "drag it to trade screen space for chain space"],
 		["tab  /  shift tab", "next / previous page (also ◀ ▶)"],
 		["`", "switch between the box and the studio window"],
 		["MIDI learn + encoder", "maps a hardware knob to that encoder: it follows focus everywhere"],
 		["MIDI learn + ◀ ▶ / track / glide / cut", "map pads or buttons on a controller to them"]]],
+	["the machine", [
+		["keep  /  return", "save everything on the tape (the last 15 minutes) to ~/Music/unsound/ · shift-return: the last minute"],
+		["takeover  /  hold '", "push the focused track toward infinity while everything else ducks · ∞ = all the way while held"],
+		["the wall", "the background layer: pick a wall (crossfades), fade it in / out, shape it with band"],
+		["digital (browser)", "bitmask, aliaser, bins, codec, overflow, skip: things a pedal can't do"]]],
 	["every so often", [
 		["button", "do it now"],
 		["slider (no numbers)", "how often: empty = never, full = a few times a second, at random intervals"],
@@ -97,6 +103,7 @@
 			~toggle.("  play  ", { ~running == true }, { |x| if (x) { ~start.() } { ~stop.() } }, Color(0.35, 0.9, 0.45)),
 			~knob.("bpm", ~bpmSpec, { ~tempo }, { |x| ~bpm.(x) }, 34, ~accent),
 			~recButton.(),
+			~tapeControls.(),
 			~sep.(),
 			~knob.("chaos", [0, 1], { ~m[\chaos] }, { |x| ~set.(\chaos, x) }, 34, ~accent),
 			~menu.(~scaleNames, { ~scaleName }, { |x| ~scaleName = x; ~scale = Scale.at(x) }),
@@ -131,7 +138,7 @@
 	var dt = ~deviceTypes[d[\type]];
 	var knobs = [~qknob.(t, d)] ++ dt[\params].collect { |p| ~dknob.(t, d, p, t[\color]) };
 	var title = d[\label] ? d[\type].asString;
-	var extras = [~toggle.("on", { d[\on] }, { |x| if (x != d[\on]) { ~dbypass.(d) } }),
+	var extras = [~popButton.(t, d), ~toggle.("on", { d[\on] }, { |x| if (x != d[\on]) { ~dbypass.(d) } }),
 		Button().canFocus_(false).fixedWidth_(34).states_([["dice"]]).action_({ ~diceDevice.(d) })];
 	var rows, panel;
 	if (d[\pinned] != true) {
@@ -211,10 +218,14 @@
 	};
 };
 
-~select = { |name| ~selected = name; ~refreshDetail.() };
+~select = { |name|
+	~selected = name;
+	if (~takeoverAmt > 0 or: { ~takeoverHeld == true }) { ~setTakeover.(~takeoverAmt) };   // takeover follows focus
+	~refreshDetail.()
+};
 
 ~refreshDetail = {
-	if (~gui == true and: { ~win.notNil } and: { ~win.isClosed.not }) { { ~buildDetail.() }.defer };
+	if (~gui == true and: { ~win.notNil } and: { ~win.isClosed.not }) { { ~buildDetail.(); ~refreshPopups.() }.defer };
 };
 
 ~refreshGui = {
@@ -229,8 +240,6 @@
 		~win.close;
 	};
 	try { QtGUI.palette = QPalette.dark };
-	~bindings = List[];
-	~animated = List[];
 	~win = Window("unsound", bounds).background_(Color.grey(0.11));
 	~detailHolder = View().layout_(VLayout().margins_(0));
 	~detailView = nil;
@@ -252,5 +261,5 @@
 	~win.front;
 	~installKeys.();
 	~startTick.();
-	~win.onClose = { ~tick.stop };
+	~win.onClose = { ~tick.stop; ~closePopups.() };
 };

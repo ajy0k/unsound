@@ -43,6 +43,10 @@
 			};
 		};
 	};
+	if (t[\kind] == \wall) {
+		pages.add(~pg.(t, "wall", [[\pick, [0, ~wallTypes.size - 1, \lin, 1], "wall"], [\dens, [0, 1]], [\grit, [0, 1]],
+			[\motion, [0, 1]], [\swap, [0, 30, 4], "swap"]]));
+	};
 	mix = [[\level, ~levelSpec, "level"], [\pan, [-1, 1], "pan"], [\wander, [0, 1], "wander"]];
 	if (it.notNil) { mix = mix.add([\speed, [0.25, 4, \exp], "speed"]) };
 	mix = ~pg.(t, "mix", mix);
@@ -93,7 +97,8 @@
 	"btn:trackPrev" -> { ~selectOffset.(-1) }, "btn:trackNext" -> { ~selectOffset.(1) },
 	"btn:glide" -> { ~glide.() }, "btn:cut" -> { ~cut.() }, "btn:back" -> { ~back.() },
 	"btn:play" -> { if (~running == true) { ~stop.() } { ~start.() } },
-	"btn:dice" -> { ~pushHistory.(); ~diceTrack.(~selected) }, "btn:new" -> { ~repatch.(~selected) }
+	"btn:dice" -> { ~pushHistory.(); ~diceTrack.(~selected) }, "btn:new" -> { ~repatch.(~selected) },
+	"btn:keep" -> { ~keep.() }, "btn:wall" -> { ~tset.(\wall, \in, (~tracks[\wall] !? { |w| w[\in] } ? true).not) }
 ];
 ~buttonTargets = Dictionary.new;
 ~btnTarget = { |tid|
@@ -142,15 +147,16 @@
 // ---------------------------------------------------------------- pads
 
 ~pad = { |t|
-	var name = t[\name], view = UserView().minSize_(Size(64, 38)).canFocus_(false), glow = 0;
+	var name = t[\name], view = UserView().minSize_(Size(52, 46)).canFocus_(false), glow = 0;
 	view.drawFunc = { |uv|
 		var b = uv.bounds.moveTo(0, 0), c = t[\color] ? Color.grey(0.6), on = t[\on] != false, sel = ~selected == name;
 		var sub = case
+		{ t[\kind] == \wall } { if (t[\in]) { ~wallTypes[t[\playing] ? 0][0] } { "out" } }
 		{ t[\kind] == \return } { t[\devices].first !? { |d| d[\label] ? d[\type].asString } ? "" }
 		{ on.not } { "muted" }
 		{ t[\kind] == \inst } { ~liveBpm.(t).round(0.1).asString }
 		{ "" };
-		Pen.fillColor = if (on) { c.blend(Color.black, 0.75 - (glow * 0.6)) } { Color.grey(0.12) };
+		Pen.fillColor = if (on and: { t[\in] != false }) { c.blend(Color.black, 0.75 - (glow * 0.6)) } { Color.grey(0.12) };
 		Pen.addRoundedRect(b.insetBy(1, 1), 4, 4);
 		Pen.fill;
 		Pen.strokeColor = if (sel) { Color.white } { c.blend(Color.black, 0.4) };
@@ -165,7 +171,7 @@
 	view.mouseDownAction = { |uv, x, y, mod, bn, clicks|
 		case
 		{ bn == 1 or: { mod.isAlt } } { ~tset.(name, \solo, t[\solo] != true) }
-		{ clicks == 2 } { ~tset.(name, \on, t[\on].not) }
+		{ clicks == 2 } { if (t[\kind] == \wall) { ~tset.(name, \in, t[\in].not) } { ~tset.(name, \on, t[\on].not) } }
 		{ ~select.(name) };
 		uv.refresh;
 		nil
@@ -177,12 +183,24 @@
 			true
 		}
 	});
-	~dropTarget.(view, { name }, { nil })
+	~dropTarget.(view, { name }, { nil });
+	View().fixedHeight_(50).layout_(HLayout(
+		view,
+		VLayout(
+			// on the wall, M fades it in and out instead of cutting it
+			if (t[\kind] == \wall) { ~toggle.("M", { t[\in].not }, { |x| ~tset.(name, \in, x.not) }, Color(1, 0.8, 0.2)).fixedSize_(Size(22, 22)) }
+				{ ~toggle.("M", { t[\on].not }, { |x| ~tset.(name, \on, x.not) }, Color(1, 0.8, 0.2)).fixedSize_(Size(22, 22)) },
+			if (t[\kind] == \inst) { ~toggle.("S", { t[\solo] == true }, { |x| ~tset.(name, \solo, x) }, Color(0.3, 0.6, 1)).fixedSize_(Size(22, 22)) }
+				{ View().fixedSize_(Size(22, 22)) }
+		).spacing_(1).margins_(0),
+		~knob.(nil, ~levelSpec, { t[\level] }, { |x| ~tset.(name, \level, x) }, 18, t[\color] ? Color.grey(0.6),
+			"t:%:level".format(name), "% volume".format(name))
+	).spacing_(1).margins_(0))
 };
 
 ~padRow = {
-	View().fixedHeight_(42).layout_(HLayout(*(
-		~voiceOrder.collect { |n| ~pad.(~tracks[n]) } ++ [nil]
+	View().fixedHeight_(52).layout_(HLayout(*(
+		~wallList.().collect { |n| ~pad.(~tracks[n]) } ++ ~voiceOrder.collect { |n| ~pad.(~tracks[n]) } ++ [nil]
 		++ ~returnOrder.collect { |n| ~pad.(~tracks[n]) } ++ [~pad.(~masterTrack),
 			~button.("+ return", { ~addReturn.(\space) }).fixedWidth_(60)]
 	)).spacing_(3).margins_(0))
@@ -212,6 +230,7 @@
 ~boxScreen = { |t|
 	var it = if (t[\kind] == \inst) { ~voiceTypes[t[\type]] };
 	case
+	{ t[\kind] == \wall } { View().layout_(~wallScreen.(t)) }
 	{ it.isNil } { ~scopeView.(t) }
 	{ it[\screen].notNil } { View().layout_(it[\screen].value(t)) }
 	{ View().layout_(it[\clip].value(t)) }
@@ -227,8 +246,8 @@
 			[ScrollView().hasHorizontalScroller_(false).canvas_(View().layout_(VLayout(~boxScreen.(t)).margins_(0))), stretch: 1],
 			View().fixedWidth_(250).layout_(VLayout(
 				HLayout(StaticText().string_(t[\name].asString).font_(Font(Font.defaultSansFace, 14, true)).stringColor_(t[\color] ? Color.white),
-					nil, ~bbutton.("dice", "btn:dice"), ~bbutton.("new", "btn:new")).spacing_(2),
-				if (t[\kind] == \inst) { ~scopeView.(t).fixedHeight_(70) } { View().fixedHeight_(1) },
+					nil, ~button.("⧉", { ~popTrack.(t) }).fixedWidth_(22), ~bbutton.("dice", "btn:dice"), ~bbutton.("new", "btn:new")).spacing_(2),
+				if ([\inst, \wall].includes(t[\kind])) { ~scopeView.(t).fixedHeight_(70) } { View().fixedHeight_(1) },
 				if (t[\kind] == \inst) { ~soRow.(t, 50) } { View().fixedHeight_(1) },
 				~boxEncHolder,
 				nil
@@ -250,26 +269,54 @@
 	}.defer;
 };
 
+// Tape: how much is on it, and keep (everything / the last minute). Return / shift-return do the same.
+~tapeControls = {
+	var shown = StaticText().font_(Font.monospace(9)).stringColor_(Color.grey(0.7)).fixedWidth_(64);
+	var keep = ~bbutton.("keep", "btn:keep", Color(0.5, 0.15, 0.15));
+	~bindings.add({
+		var secs = ~tapeSecs.().asInteger;
+		if (shown.isClosed) { false } {
+			shown.string = "tape %:%".format(secs div: 60, (secs % 60).asString.padLeft(2, "0"));
+			shown.stringColor = if (Main.elapsedTime - (~lastKeep ? -10) < 2) { Color.white } { Color.grey(0.7) };
+			true
+		}
+	});
+	HLayout(shown, keep).spacing_(2)
+};
+
+// Takeover: a slider (no numbers) for the selected track, and ∞ (hold) to push it all the way.
+~takeoverControls = {
+	var hold = UserView().fixedSize_(Size(28, 20)).canFocus_(false);
+	hold.drawFunc = { |uv|
+		Pen.fillColor = if (~takeoverHeld == true) { Color(1, 0.25, 0.1) } { Color(0.35, 0.1, 0.08) };
+		Pen.fillRect(uv.bounds.moveTo(0, 0));
+		Pen.stringCenteredIn("∞", uv.bounds.moveTo(0, 0), Font(Font.defaultSansFace, 14, true), Color.white);
+	};
+	hold.mouseDownAction = { ~holdTakeover.(true); hold.refresh; nil };
+	hold.mouseUpAction = { ~holdTakeover.(false); hold.refresh; nil };
+	HLayout(~lbl.("takeover", 9),
+		~bar.([0, 1], { ~takeoverAmt }, { |x| ~setTakeover.(x) }, Color(1, 0.3, 0.1), "g:takeover", "takeover", 50),
+		hold).spacing_(2)
+};
+
 ~boxTop = {
 	HLayout(
 		~toggle.("  play  ", { ~running == true }, { |x| if (x) { ~start.() } { ~stop.() } }, Color(0.35, 0.9, 0.45)),
 		~knob.("bpm", ~bpmSpec, { ~tempo }, { |x| ~bpm.(x) }, 26, ~accent),
-		~recButton.(),
+		~tapeControls.(),
 		~sep.(),
+		~takeoverControls.(),
 		~bbutton.("glide", "btn:glide"), ~bbutton.("cut", "btn:cut"), ~bbutton.("back", "btn:back"),
 		~knob.("distance", [0, 1], { ~lurchDistance }, { |x| ~lurchDistance = x }, 26, ~accent),
-		~sometimesW.("glide", "g:glide", { ~events[\soGlide] ? 0 }, { |x| ~events[\soGlide] = x }, Color(0.4, 0.8, 1), 60),
-		~sometimesW.("cut", "g:cut", { ~events[\soCut] ? 0 }, { |x| ~events[\soCut] = x }, Color(0.4, 0.8, 1), 60),
+		~sometimesW.("glide", "g:glide", { ~events[\soGlide] ? 0 }, { |x| ~events[\soGlide] = x }, Color(0.4, 0.8, 1), 40),
+		~sometimesW.("cut", "g:cut", { ~events[\soCut] ? 0 }, { |x| ~events[\soCut] = x }, Color(0.4, 0.8, 1), 40),
 		~sep.(),
 		~knob.("chaos", [0, 1], { ~m[\chaos] }, { |x| ~set.(\chaos, x) }, 26, ~accent),
-		~menu.(~scaleNames, { ~scaleName }, { |x| ~scaleName = x; ~scale = Scale.at(x) }),
-		~menu.((0..11), { ~key }, { |x| ~key = x }, ~noteNames),
 		~button.("infect", { ~infect.(4) }), ~button.("cure", { ~cure.() }),
-		~toggle.("alive", { ~alive }, { |x| ~alive = x }, Color(0.5, 1, 0.6)),
-		~toggle.("MIDI learn", { ~midiLearn }, { |x| ~midiLearn = x; if (x.not) { ~learnTarget = nil } }, Color.yellow),
+		~toggle.("MIDI", { ~midiLearn }, { |x| ~midiLearn = x; if (x.not) { ~learnTarget = nil } }, Color.yellow),
 		nil,
-		~button.("save set", { Dialog.savePanel({ |p| ~saveSet.(p) }, nil, ~setsDir) }),
-		~button.("load set", { Dialog.openPanel({ |p| ~loadSet.(p) }, nil, false, ~setsDir) }),
+		~button.("save", { Dialog.savePanel({ |p| ~saveSet.(p) }, nil, ~setsDir) }),
+		~button.("load", { Dialog.openPanel({ |p| ~loadSet.(p) }, nil, false, ~setsDir) }),
 		~button.("studio", { ~viewMode = \studio; ~refreshGui.() }),
 		Button().canFocus_(false).fixedWidth_(24).states_([["?", Color.black, ~accent]]).action_({ ~showHelp.() })
 	).spacing_(3)

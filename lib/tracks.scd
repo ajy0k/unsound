@@ -15,13 +15,18 @@
 
 ~defs.add({
 	var n = ~maxReturns;
+	// `push` (takeover): drives the track into digital clipping and up in level, toward infinity.
+	// `duck`: everyone else gets out of the way while something takes over.
 	SynthDef(\uStrip, {
 		var sig = In.ar(\in.kr(0), 2), gate = \gate.kr(1, 0.02), wander = \wander.kr(0, 0.5);
 		var sends = \send.kr(0 ! n, 0.05), buses = \fxBus.kr(0 ! n), pre = \pre.kr(0 ! n);
-		var preSig = sig * gate, post;
+		var push = \push.kr(0, 0.05), duck = \duck.kr(0, 0.1);
+		var preSig, post;
+		sig = SelectX.ar((push > 0.001).lag(0.02), [sig, (sig * (1 + (push.squared * 600))).clip2(1)]);
+		preSig = sig * gate;
 		post = Balance2.ar(sig[0], sig[1],
 			(\pan.kr(0, 0.05) + (LFNoise2.kr(0.1 + (wander * 1.5)) * wander)).clip(-1, 1));
-		post = post * \amp.kr(0.7, 0.05) * gate;
+		post = post * \amp.kr(0.7, 0.05) * gate * (1 + (push * 2)) * (1 - (duck * 0.9));
 		Out.ar(\out.kr(0), post);
 		n.do { |i| Out.ar(buses[i], ((post * (1 - pre[i])) + (preSig * pre[i])) * sends[i]) };
 		SendPeakRMS.kr(post, 15, 3, '/uMeter', \id.kr(0));
@@ -86,7 +91,7 @@ OSCdef(\uMeter, { |msg|
 };
 
 ~stripArgs = { |t|
-	[amp: t[\level], pan: t[\pan], wander: t[\wander], gate: ~gateFor.(t),
+	[amp: t[\level], pan: t[\pan], wander: t[\wander], gate: ~gateFor.(t), push: t[\push] ? 0, duck: t[\duck] ? 0,
 		fxBus: ~sendBuses.(t), send: ~sendLevels.(t), pre: ~preFlags.()]
 };
 
@@ -96,12 +101,13 @@ OSCdef(\uMeter, { |msg|
 
 // Build a track's nodes on the server (also used to rebuild everything after Cmd-.).
 ~buildTrack = { |t|
-	var target = switch (t[\kind]) { \inst } { ~tracksGrp } { \return } { ~returnsGrp } { \master } { ~masterGrp };
+	var target = switch (t[\kind]) { \inst } { ~tracksGrp } { \wall } { ~tracksGrp } { \return } { ~returnsGrp } { \master } { ~masterGrp };
 	t[\grp] = Group.tail(target);
 	t[\src] = Group.head(t[\grp]);
 	if (t[\kind] == \return) { Synth.tail(t[\src], \uThru, [in: t[\inBus], fb: t[\fbBus], out: t[\bus]]) };
 	// continuous instruments (creature, bytebeat, hum) keep one synth running in the source group
 	if (t[\kind] == \inst) { ~voiceTypes[t[\type]][\build] !? { |b| b.value(t) } };
+	if (t[\kind] == \wall) { t[\voice] = nil; ~wallStart.(t) };
 	t[\fxg] = Group.tail(t[\grp]);
 	t[\devices].do { |d| ~buildDevice.(t, d) };
 	t[\strip] = Synth.tail(t[\grp], \uStrip,
@@ -196,6 +202,11 @@ OSCdef(\uMeter, { |msg|
 		{ \pre } { ~refreshAllStrips.() };
 		t[\voice] !? { |v| if (val.isNumber) { v.set(key, val) } };
 		if (t[\kind] == \inst) { ~voiceTypes[t[\type]][\onSet].value(t, key, val) };
+		if (t[\kind] == \wall) {
+			// only a different recipe crossfades (a morphing `pick` passes through without restarting)
+			if (key == \pick and: { t[\voice].notNil } and: { val.round != t[\playing] }) { ~wallStart.(t) };
+			if (key == \in) { ~wallIn.(val) };
+		};
 	};
 };
 
@@ -271,6 +282,7 @@ OSCdef(\uMeter, { |msg|
 		t[\routine] = Routine({ ~voiceTypes[t[\type]][\mover].value(t) }).play(~clock, quant: 4);
 		t[\voice] !? { |v| v.set(\gate, 1) };
 	};
+	if (t[\kind] == \wall) { t[\voice] !? { |v| v.set(\gate, t[\in].binaryValue) } };
 	t[\devices].do { |d| ~startDevice.(t, d) };
 };
 
@@ -279,4 +291,35 @@ OSCdef(\uMeter, { |msg|
 	t[\ramps].do(_.stop);
 	t[\devices].do { |d| d[\routine].stop };
 	t[\voice] !? { |v| v.set(\gate, 0) };
+};
+
+// ---------------------------------------------------------------- takeover
+
+// Push one track toward infinity (0..1) while everything else ducks under it. The master is
+// never pushed or ducked, and neither are the returns (so the pushed track's echoes still come through).
+~takeover = { |name, amount|
+	var target = ~tracks[name];
+	~takeoverTrack = if (amount > 0.001) { name };
+	~tracks.do { |t|
+		if ([\inst, \wall].includes(t[\kind])) {
+			t[\push] = if (t === target) { amount } { 0 };
+			t[\duck] = if (t === target or: { target.isNil }) { 0 } { amount };
+			t[\strip].set(\push, t[\push], \duck, t[\duck]);
+		};
+	};
+};
+
+// The takeover slider (and the held key / pad) act on the selected track.
+~takeoverAmt = 0;
+~takeoverName = {
+	var t = ~tracks[~selected];
+	if (t.notNil and: { [\inst, \wall].includes(t[\kind]) }) { ~selected }
+};
+~setTakeover = { |x|
+	~takeoverAmt = x;
+	~takeover.(~takeoverName.(), if (~takeoverHeld == true) { 1 } { x });
+};
+~holdTakeover = { |on|
+	~takeoverHeld = on;
+	~takeover.(~takeoverName.(), if (on) { 1 } { ~takeoverAmt });
 };

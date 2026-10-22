@@ -257,6 +257,53 @@
 	).margins_(3).spacing_(3))
 };
 
+// ---------------------------------------------------------------- pop-out windows
+
+// Any device, or a whole track, can live in its own window, as many as you like, like plugin
+// windows in a DAW (Cmd-` cycles them). A window closes itself when its device or track goes away.
+// `rebuild`: the window is rebuilt when the track changes (devices added / removed).
+~popups = ();
+
+~popOut = { |key, title, build, alive, rebuild = false|
+	var p = ~popups[key], w, holder, n = ~popups.size;
+	if (p.notNil and: { p[\win].isClosed.not }) { p[\win].front } {
+		holder = View().layout_(VLayout(build.value).margins_(4));
+		w = Window(title, Rect(80 + (n * 26), 120 + (n * 26), 420, 300)).background_(Color.grey(0.12));
+		w.layout = VLayout(holder).margins_(0);
+		w.onClose = { ~popups.removeAt(key) };
+		{ var sz = holder.sizeHint; w.setInnerExtent(sz.width.clip(260, 1600), sz.height.clip(120, 1000)) }.defer(0.05);
+		w.front;
+		~popups[key] = (win: w, holder: holder, build: build, alive: alive, rebuild: rebuild);
+		~bindings.add({ if (w.isClosed) { false } { if (alive.value != true) { w.close; false } { true } } });
+	};
+};
+
+~refreshPopups = {
+	~popups.do { |p|
+		if (p[\rebuild] and: { p[\win].isClosed.not } and: { p[\alive].value == true }) {
+			p[\holder].removeAll;
+			p[\holder].layout = VLayout(p[\build].value).margins_(4);
+		};
+	};
+};
+
+~closePopups = { ~popups.copy.do { |p| if (p[\win].isClosed.not) { p[\win].close } } };
+
+// ⧉ on a device's title bar.
+~popButton = { |t, d|
+	Button().canFocus_(false).fixedWidth_(20).states_([["⧉"]]).action_({
+		~popOut.("d:%".format(d[\uid]), "% · %".format(t[\name], d[\label] ? d[\type]), { ~devicePanel.(t, d) },
+			{ ~tracks[t[\name]] === t and: { t[\devices].includes(d) } });
+	})
+};
+
+// A whole track in its own window: its screen and its chain.
+~popTrack = { |t|
+	~popOut.("t:%".format(t[\name]), t[\name].asString, {
+		VLayout([~boxScreen.(t), stretch: 1], [~chain.(t), stretch: 1])
+	}, { ~tracks[t[\name]] === t }, true);
+};
+
 // Make a view accept things dragged from the browser. nameFn → track name, indexFn.(x, y) → chain index.
 ~dropTarget = { |view, nameFn, indexFn|
 	view.canReceiveDragHandler_({ View.currentDrag.isKindOf(Event) })

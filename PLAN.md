@@ -86,12 +86,20 @@ control sends will map them.
 ## Build order
 
 **First slice: try the direction before committing to all of it**
-1. ⬜ **tape**: always-on 15-minute buffer and a **keep** button
-2. ⬜ **the wall**: a dedicated layer, a few swappable walls, a lows/highs shaper
-3. ⬜ **takeover** on the selected source
-4. ⬜ default set: **bitmeister ×2 + grains + wall**, no drums
-5. ⬜ 5–6 new **drawer effects**, digital and nasty, 3–4 knobs each (from the list above: bit ops,
-   spectral, codec damage, sample-rate abuse)
+1. ✅ **tape**: always-on 15-minute ring buffer in memory (`~tapeMinutes`); **keep** (return) saves it all,
+   shift-return the last minute, to `~/Music/unsound/keep-<date>.wav`
+2. ✅ **the wall**: a layer of its own (kind `\wall`: strip, sends, chain; ignores solo, dice and glide).
+   Seven recipes in `~wallTypes` (static, bitwall, crackle, bit rain, spectral, scream, mains), crossfade
+   on pick, fade in/out, `band` (lows/highs, drawn) + hard clip on its chain
+3. ✅ **takeover**: a slider (no numbers) and ∞ (hold, or hold `'`) for the focused track: it's driven
+   into digital clipping and up in level while the other tracks and the wall duck. Follows focus
+4. ✅ default set: **bitmeister ×2 + grains + wall**, no drums; sends A (echo) and B (space) are overdriven
+5. ✅ **digital drawer** (new browser category): bitmask, aliaser, bins, codec, overflow, skip, with
+   presets (xor storm, dial-up, wraparound, scratched…) and two chains (digital rot, broken stream)
+
+Also from the same session: **pop-out windows** (⧉ on any device, or the whole track: as many as
+you like, like plugin windows; the user never minded 20 windows and tabbing between them) and
+**M / S / volume** on every pad.
 
 **Then**
 - ⬜ **lines** (hit and phrase)

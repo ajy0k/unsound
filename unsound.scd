@@ -13,8 +13,14 @@
 ~maxSecs = ~maxSecs ? 20;         // only read the first N seconds of each file
 ~gui = ~gui ? true;
 ~tempo = ~tempo ? 132;
-~startVoices = ~startVoices ? [\noise, \bytebeat, \deck, \atari, \osc3, \drums];
-~startReturns = ~startReturns ? [\space, \echo, \shift, \smear];
+~startVoices = ~startVoices ? [\bytebeat, \bytebeat, \grains];
+// each return: a device, or a list of [device, settings] (the sends are overdriven too)
+~startReturns = ~startReturns ? [
+	[[\echo, (fb: 0.7)], [\drive, (mode: 4, gain: 8, mix: 0.6)]],
+	[[\space, (size: 0.95)], [\drive, (mode: 2, gain: 4, mix: 0.4)]],
+	\shift, \smear
+];
+~startWall = ~startWall ? true;
 
 ~m = (chaos: 0.4);   // the one global macro: widens every random walk, raises every probability
 
@@ -35,6 +41,8 @@ if (s.serverRunning) {
 	"lib/melody.scd",
 	"lib/mods.scd",
 	"lib/sometimes.scd",
+	"lib/tape.scd",
+	"lib/wall.scd",
 	"lib/drones.scd",
 	"lib/scenes.scd",
 	"lib/control.scd",
@@ -63,9 +71,11 @@ if (s.serverRunning) {
 	~tracksGrp = Group.tail(s);
 	~returnsGrp = Group.tail(s);
 	~masterGrp = Group.tail(s);
+	~tracks[\wall] !? { |w| ~buildTrack.(w) };
 	~voiceOrder.do { |name| ~buildTrack.(~tracks[name]) };
 	~returnOrder.do { |name| ~buildTrack.(~tracks[name]) };
 	~buildTrack.(~masterTrack);
+	~startTape.();
 };
 
 s.options.numInputBusChannels = 0;   // no mic needed, and it avoids input/output sample-rate mismatches
@@ -96,8 +106,16 @@ s.waitForBoot {
 	~dev.(\master, \filter);
 	~dev.(\master, \drive, nil, (mode: 0, gain: 1.5, mix: 0.3), "warmth");
 	~dev.(\master, \limiter)[\pinned] = true;
-	~startReturns.do { |type| ~addReturn.(type) };
+	~startReturns.do { |r|
+		if (r.isKindOf(Symbol)) { ~addReturn.(r) } {
+			var name = ~addReturn.(nil);
+			r.do { |dv| ~dev.(name, dv[0], nil, dv[1]) };
+		};
+	};
+	if (~startWall) { ~makeWall.() };
 	~startVoices.do { |type| ~add.(type) };
+	// two bitmeisters shouldn't start out identical
+	~voiceOrder.select { |n| ~tracks[n][\type] == \bytebeat }.drop(1).do { |n| ~diceTrack.(n) };
 	~selected = ~voiceOrder.first;
 	~initMidi.();
 	~startMods.();

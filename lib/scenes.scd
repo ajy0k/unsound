@@ -16,7 +16,7 @@
 ~runtimeKeys = [\id, \meter, \meterShow, \pos, \abs, \deg, \cursor, \head, \lastBuf, \lastPos, \tdrift,
 	\toneOff, \barAcc, \color, \heard, \routine, \ramps, \strip, \grp, \src, \fxg, \bus, \inBus, \fbBus,
 	\carBuf, \modBuf, \devices, \sends, \live, \held, \voice, \motor, \loadedPath, \loading, \deckBuf, \slab,
-	\jumpBy, \jumpUntil, \lastRate];
+	\jumpBy, \jumpUntil, \lastRate, \push, \duck, \playing];
 
 ~storable = { |v|
 	v.isNumber or: { v.isKindOf(Symbol) } or: { v.isKindOf(Boolean) }
@@ -46,7 +46,7 @@
 
 ~snapshot = {
 	(tempo: ~tempo, chaos: ~m[\chaos], scaleName: ~scaleName, key: ~key, mods: ~modState.(),
-		tracks: (~voiceOrder ++ ~returnOrder ++ [\master]).collect { |n| ~trackState.(~tracks[n]) }.asArray)
+		tracks: (~wallList.() ++ ~voiceOrder ++ ~returnOrder ++ [\master]).collect { |n| ~trackState.(~tracks[n]) }.asArray)
 };
 
 ~sameChain = { |t, descs|

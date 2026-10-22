@@ -9,6 +9,8 @@
 //   ↑ / ↓        selected track volume up / down   (with shift: tempo of that track up / down)
 //   tab          box: next page (shift-tab: previous) · studio: Clip / Devices / Mods
 //   `            switch between the box and the studio window
+//   '  hold: takeover (the selected track goes to infinity, everything else ducks)
+//   return  keep everything on the tape (shift: the last minute)
 //   N  new sound on the selected track     M  mute selected     R  resync selected
 //   /  dice the selected track (instrument + devices)     I  infect: scatter mods     \  cure: remove all mods
 //   B  hold: stutter every stutter device on the master while held
@@ -28,7 +30,7 @@
 
 ~selectedTrack = { ~tracks[~selected] };
 
-~trackList = { ~voiceOrder.asArray ++ ~returnOrder.asArray ++ [\master] };
+~trackList = { ~wallList.() ++ ~voiceOrder.asArray ++ ~returnOrder.asArray ++ [\master] };
 
 ~selectOffset = { |dir|
 	var list = ~trackList.(), i = list.indexOf(~selected) ? 0;
@@ -76,6 +78,8 @@
 	{ key == 16r1000001 and: { ~viewMode == \box } } { ~boxPageStep.(1) }
 	{ key == 16r1000002 and: { ~viewMode == \box } } { ~boxPageStep.(-1) }
 	{ key == 16r1000001 } { ~detailMode = switch (~detailMode) { \clip } { \devices } { \devices } { \mods } { \clip }; ~refreshDetail.() }
+	{ char == $' } { ~holdTakeover.(true) }
+	{ key == 16r1000004 or: { key == 16r1000005 } } { if (mod.isShift) { ~keep.(60) } { ~keep.() } }
 	{ char == $` } { ~viewMode = if (~viewMode == \box) { \studio } { \box }; ~refreshGui.() }
 	{ char == $? } { { ~showHelp.() }.defer }
 	{ char == $n } { ~repatch.(~selected) }
@@ -100,7 +104,8 @@
 	~keysDown.remove(key);
 	case
 	{ char == $b } { ~holdMaster.(\stutter, false) }
-	{ char == $v } { ~holdMaster.(\freeze, false) };
+	{ char == $v } { ~holdMaster.(\freeze, false) }
+	{ char == $' } { ~holdTakeover.(false) };
 	nil
 };
 

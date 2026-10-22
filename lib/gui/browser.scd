@@ -4,7 +4,7 @@
 
 ~catColors = (instruments: Color(0.35, 0.75, 0.9), distortion: Color(0.95, 0.45, 0.3), filter: Color(0.95, 0.8, 0.3),
 	time: Color(0.45, 0.85, 0.55), glitch: Color(0.85, 0.45, 0.95), dynamics: Color(0.7, 0.7, 0.75),
-	chains: Color(1, 0.6, 0.75));
+	chains: Color(1, 0.6, 0.75), digital: Color(0.3, 0.95, 0.85));
 
 ~browserEntry = { |label, obj, color|
 	var v = UserView().fixedHeight_(19).canFocus_(false), down, over = false, flash = 0;

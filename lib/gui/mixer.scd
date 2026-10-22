@@ -72,7 +72,7 @@
 			[~toggle.("on", { t[\on] }, { |x| ~tset.(name, \on, x) }, color)]
 			++ (if (t[\kind] == \inst) { [~toggle.("S", { t[\solo] }, { |x| ~tset.(name, \solo, x) }, Color(0.3, 0.6, 1))] } { [] })
 			++ (if (t[\kind] == \return) { [~toggle.("pre", { t[\pre] }, { |x| ~tset.(name, \pre, x) })] } { [] })
-			++ (if (t[\kind] != \master) { [Button().canFocus_(false).fixedWidth_(18).states_([["x"]]).action_({ ~remove.(name) })] } { [] })
+			++ (if ([\master, \wall].includes(t[\kind]).not) { [Button().canFocus_(false).fixedWidth_(18).states_([["x"]]).action_({ ~remove.(name) })] } { [] })
 		)).spacing_(1)
 	).margins_(2).spacing_(2));
 	~dropTarget.(col, { name }, { nil })
@@ -115,7 +115,8 @@
 	var canvas;
 	~titleButtons = ();
 	canvas = View().layout_(HLayout(*(
-		~voiceOrder.collect { |n| ~mixerColumn.(~tracks[n]) }
+		~wallList.().collect { |n| ~mixerColumn.(~tracks[n]) }
+		++ ~voiceOrder.collect { |n| ~mixerColumn.(~tracks[n]) }
 		++ [nil]
 		++ ~returnOrder.collect { |n| ~mixerColumn.(~tracks[n]) }
 		++ [~mixerColumn.(~masterTrack)]

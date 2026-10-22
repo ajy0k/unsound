@@ -212,6 +212,65 @@
 		sig * \out.kr(1, 0.05)
 	});
 
+	// Band: just lows and highs (4-pole each, resonant at the edges). The wall's shaper.
+	~deviceDef.(\dBand, { |sig, lows = 40, highs = 16000, res = 0|
+		var l = lows.lag(0.05).clip(10, 18000), h = highs.lag(0.05).clip(20, 20000), rq = res.linlin(0, 1, 1.4, 0.12);
+		RLPF.ar(LPF.ar(RHPF.ar(HPF.ar(sig, l), l, rq), h), h, rq)
+	});
+
+	// ------------------------------------------------ digital: things a pedal can't do
+	// Bitmask: the signal as 16-bit integers, XOR / AND / OR with a mask that sweeps by itself.
+	~deviceDef.(\dBitmask, { |sig, bits = 8, op = 0, rate = 2, depth = 0.5|
+		var i = (sig.clip2(1) * 32767).round;
+		var m = (LFSaw.ar(rate).range(0, 1) * depth * (2 ** bits.round)).round;
+		var y = Select.ar(op.round.clip(0, 2), [i.bitXor(m), i.bitAnd(65535 - m), i.bitOr(m)]);
+		LeakDC.ar((y / 32767).clip2(1))
+	});
+
+	// Aliaser: sample-and-hold with no filter; `follow` lets loud moments push the rate up.
+	~deviceDef.(\dAlias, { |sig, rate = 4000, follow = 0.5, bits = 24|
+		var r = (rate * (1 + (Amplitude.ar(Mix(sig), 0.001, 0.01) * follow * 40))).clip(20, SampleRate.ir);
+		Latch.ar(sig, Impulse.ar(r)).round(2 ** (1 - bits.round))
+	});
+
+	// Bins: stretch and shift the spectrum; `thin` throws bins away.
+	~deviceDef.(\dBins, { |sig, stretch = 1, shift = 0, thin = 0|
+		var c = FFT({ LocalBuf(2048) } ! 2, sig);
+		c = PV_BinShift(c, stretch, shift.round);
+		c = PV_RandComb(c, thin, Impulse.kr(6));
+		IFFT(c)
+	});
+
+	// Codec: a bad stream. Only the spectral peaks survive (`quality`), frames warble, packets drop.
+	~deviceDef.(\dCodec, { |sig, quality = 0.5, warble = 0.3, loss = 0.05|
+		var c = FFT({ LocalBuf(1024) } ! 2, sig), x, drop;
+		c = PV_LocalMax(c, (1 - quality) * 8);
+		c = PV_BrickWall(c, quality.linlin(0, 1, -0.85, 0));
+		c = PV_RandComb(c, warble * 0.6, Impulse.kr(43));
+		x = IFFT(c);
+		drop = (LFNoise0.kr(25) * 0.5 + 0.5) < loss;
+		x * (1 - drop).lag(0.0005)
+	});
+
+	// Overflow: integer wraparound. Push it and loud turns into its opposite. `fold` reflects instead.
+	~deviceDef.(\dOverflow, { |sig, gain = 4, bits = 16, fold = 0|
+		var x = sig * gain, q = 2 ** (bits.round - 1);
+		var w = (((x * q).round + q) % (2 * q)) - q / q;
+		SelectX.ar(fold.lag(0.05), [w, x.fold2(1)])
+	});
+
+	// Skip: a scratched CD. Every so often it sticks on a tiny chunk of the last couple of seconds.
+	~deviceDef.(\dSkip, { |sig, chance = 0.3, size = 0.0133, spread = 0.5|
+		var buf = LocalBuf(SampleRate.ir * 2, 2).clear;
+		var frames = BufFrames.ir(buf), w = Phasor.ar(0, 1, 0, frames);
+		var trig = Dust.kr(chance * 12), stuck = Trig1.kr(trig, TRand.kr(0.05, 0.6, trig));
+		var n = (size * SampleRate.ir).max(64);
+		var from = Latch.kr(A2K.kr(w), trig) - (TRand.kr(0, spread.clip(0, 1.9), trig) * SampleRate.ir) - n;
+		var looped = BufRd.ar(2, buf, from + Phasor.ar(trig, 1, 0, n), 1, 1);
+		BufWr.ar(sig, buf, w);
+		Select.ar(stuck > 0, [sig, looped])
+	});
+
 	// Only if the VSTPlugin extension is installed (https://git.iem.at/pd/vstplugin). Referenced by
 	// name, so this file still compiles without it.
 	if (\VSTPlugin.asClass.notNil) { ~deviceDef.(\dVST, { |sig| \VSTPlugin.asClass.ar(sig, 2) }) };
@@ -353,6 +412,23 @@
 	gate: (def: \dGate, cat: \dynamics, params: [~p.(\thresh, 0.05, [0.001, 0.5, \exp]), ~p.(\mix, 1, [0, 1])]),
 	width: (def: \dWidth, cat: \dynamics, params: [
 		~p.(\width, 1, [0, 3]), ~p.(\autopan, 0, [0, 1]), ~p.(\rate, 0.5, [0.01, 20, \exp]), ~p.(\mix, 1, [0, 1])]),
+	band: (def: \dBand, cat: \filter, panel: { |t, d| ~bandPanel.(t, d) }, width: 230, params: [
+		~p.(\lows, 40, [10, 18000, \exp]), ~p.(\highs, 16000, [20, 20000, \exp]), ~p.(\res, 0, [0, 1]), ~p.(\mix, 1, [0, 1])]),
+
+	bitmask: (def: \dBitmask, cat: \digital, params: [
+		~p.(\bits, 8, [1, 16, \lin, 1]), ~p.(\op, 0, [0, 2, \lin, 1], "xor/and/or"), ~p.(\rate, 2, [0.01, 2000, \exp]),
+		~p.(\depth, 0.5, [0, 1]), ~p.(\mix, 1, [0, 1])]),
+	alias: (def: \dAlias, cat: \digital, params: [
+		~p.(\rate, 4000, [20, 48000, \exp]), ~p.(\follow, 0.5, [0, 1]), ~p.(\bits, 24, [1, 24, \lin, 1]), ~p.(\mix, 1, [0, 1])]),
+	bins: (def: \dBins, cat: \digital, params: [
+		~p.(\stretch, 1, [0.25, 4, \exp]), ~p.(\shift, 0, [-200, 200, \lin, 1]), ~p.(\thin, 0, [0, 1]), ~p.(\mix, 1, [0, 1])]),
+	codec: (def: \dCodec, cat: \digital, params: [
+		~p.(\quality, 0.5, [0, 1]), ~p.(\warble, 0.3, [0, 1]), ~p.(\loss, 0.05, [0, 1]), ~p.(\mix, 1, [0, 1])]),
+	overflow: (def: \dOverflow, cat: \digital, params: [
+		~p.(\gain, 4, [1, 100, \exp]), ~p.(\bits, 16, [2, 24, \lin, 1]), ~p.(\fold, 0, [0, 1]), ~p.(\mix, 1, [0, 1])]),
+	skip: (def: \dSkip, cat: \digital, params: [
+		~p.(\chance, 0.3, [0, 1]), ~p.(\size, 0.0133, [0.001, 0.3, \exp]), ~p.(\spread, 0.5, [0, 1.9]), ~p.(\mix, 1, [0, 1])]),
+
 	eq8: (def: \dEQ8, cat: \filter, panel: { |t, d| ~eq8Panel.(t, d) }, width: 470, params: ~eq8Params,
 		pages: [["eq gain", (1..8).collect { |n| ("g" ++ n).asSymbol }], ["eq freq", (1..8).collect { |n| ("f" ++ n).asSymbol }],
 			["eq q", (1..8).collect { |n| ("q" ++ n).asSymbol }]]),
@@ -391,7 +467,17 @@ if (\VSTPlugin.asClass.notNil) {
 		["bitcrush", \crush, (bits: 6, rate: 8000)], ["bitrot", \crush, (bits: 3, rate: 1500)],
 		["dirt", \dirt, ()]
 	]],
+	[\digital, [
+		["bitmask", \bitmask, ()], ["bit eater", \bitmask, (bits: 14, op: 1, rate: 0.3, depth: 0.9)],
+		["xor storm", \bitmask, (bits: 12, rate: 300, depth: 1)],
+		["aliaser", \alias, ()], ["follower alias", \alias, (rate: 600, follow: 1, bits: 6)],
+		["bins", \bins, ()], ["bin stretch", \bins, (stretch: 2.3, shift: -20)], ["bin thin", \bins, (thin: 0.85)],
+		["codec", \codec, ()], ["dial-up", \codec, (quality: 0.1, warble: 0.8, loss: 0.2)],
+		["overflow", \overflow, ()], ["wraparound", \overflow, (gain: 30, bits: 8)],
+		["skip", \skip, ()], ["scratched", \skip, (chance: 0.8, size: 0.03, spread: 1.5)]
+	]],
 	[\filter, [
+		["band", \band, ()], ["narrow band", \band, (lows: 400, highs: 2500, res: 0.6)],
 		["low pass", \filter, (mode: 0, cutoff: 1200, res: 0.4)], ["high pass", \filter, (mode: 1, cutoff: 400)],
 		["band pass", \filter, (mode: 2, cutoff: 1500, res: 0.6)], ["drifting filter", \filter, (cutoff: 6000, drift: 0.6)],
 		["eq", \eq, ()], ["comb", \comb, ()], ["resonator", \resonator, ()], ["bells", \resonator, (spread: 2.4, decay: 3)],
@@ -413,6 +499,8 @@ if (\VSTPlugin.asClass.notNil) {
 		["limiter", \limiter, ()]
 	] ++ ~vstItems],
 	[\chains, [
+		["digital rot", [[\overflow, (gain: 12)], [\bitmask, (rate: 40)], [\codec, (quality: 0.3)], [\skip, ()]]],
+		["broken stream", [[\codec, (quality: 0.15, loss: 0.2)], [\alias, (rate: 1500)], [\skip, (chance: 0.6)]]],
 		["noise wall", [[\drive, (mode: 4, gain: 12)], [\feedback, ()], [\smear, (mix: 0.6)], [\space, (mix: 0.5)]]],
 		["broken radio", [[\filter, (mode: 2, cutoff: 1800, res: 0.7)], [\crush, (bits: 5, rate: 4000)], [\dirt, ()], [\chop, (rate: 0.125, depth: 0.7)]]],
 		["tape ghost", [[\tape, (wow: 0.7, age: 0.7)], [\reverse, ()], [\echo, (fb: 0.7)], [\space, (mix: 0.5)]]],

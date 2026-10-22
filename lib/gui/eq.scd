@@ -133,3 +133,59 @@
 	fill.();
 	VLayout(graph, HLayout(*(picks ++ [nil])).spacing_(2), knobs).spacing_(3)
 };
+
+// ---------------------------------------------------------------- band (lows / highs)
+
+// A strip of the spectrum: the bright part is what gets through. Drag near an edge to move it,
+// drag the middle to move both. Scroll = resonance.
+~bandGraph = { |t, d, w = 220, h = 54|
+	var view = UserView().fixedSize_(Size(w, h)).canFocus_(false).background_(Color.grey(0.07));
+	var fSpec = ControlSpec(10, 20000, \exp), pr = d[\params], grab, x0;
+	var put = { |key, val|
+		var spec = ~deviceTypes[\band][\params].detect { |p| p[\key] == key }[\spec];
+		~setOrHome.("d:%:%".format(d[\uid], key), spec, val, { |x| ~dparam.(d, key, x) });
+	};
+	view.drawFunc = { |uv|
+		var lx = fSpec.unmap(pr[\lows]) * w, hx = fSpec.unmap(pr[\highs]) * w, c = t[\color] ? ~accent;
+		Pen.fillColor = c.copy.alpha_(0.35);
+		Pen.fillRect(Rect(lx, 0, (hx - lx).max(1), h));
+		Pen.strokeColor = Color.grey(0.25);
+		[100, 1000, 10000].do { |f| Pen.line(Point(fSpec.unmap(f) * w, 0), Point(fSpec.unmap(f) * w, h)) };
+		Pen.stroke;
+		Pen.fillColor = c;
+		[lx, hx].do { |x| Pen.fillRect(Rect(x - 2, 0, 4, h)) };
+		if (pr[\res] > 0.02) {
+			Pen.fillColor = c.copy.alpha_(pr[\res]);
+			[lx, hx].do { |x| Pen.fillOval(Rect.aboutPoint(Point(x, h / 2), 4 + (pr[\res] * 6), 4 + (pr[\res] * 6))) };
+		};
+		Pen.stringAtPoint(~fmt.(pr[\lows]) ++ " – " ++ ~fmt.(pr[\highs]) ++ " Hz", Point(4, h - 13), Font.monospace(8), Color.grey(0.8));
+	};
+	view.mouseDownAction = { |uv, x|
+		var lx = fSpec.unmap(pr[\lows]) * w, hx = fSpec.unmap(pr[\highs]) * w;
+		grab = case { (x - lx).abs < 10 } { \lows } { (x - hx).abs < 10 } { \highs } { (x > lx) and: { x < hx } } { \both } { nil };
+		if (grab.isNil) { grab = if ((x - lx).abs < (x - hx).abs) { \lows } { \highs } };
+		x0 = x;
+		nil
+	};
+	view.mouseMoveAction = { |uv, x|
+		var f = fSpec.map((x / w).clip(0, 1)), ratio;
+		switch (grab)
+		{ \lows } { put.(\lows, f.min(pr[\highs] * 0.95)) }
+		{ \highs } { put.(\highs, f.max(pr[\lows] * 1.05)) }
+		{ \both } {
+			ratio = fSpec.map((x / w).clip(0, 1)) / fSpec.map((x0 / w).clip(0, 1));
+			put.(\lows, (pr[\lows] * ratio).clip(10, 18000));
+			put.(\highs, (pr[\highs] * ratio).clip(20, 20000));
+			x0 = x;
+		};
+		nil
+	};
+	view.mouseWheelAction = { |uv, x, y, mod, dx, dy| put.(\res, (pr[\res] + (dy.sign * 0.04)).clip(0, 1)); true };
+	~animated.add({ if (view.isClosed) { false } { view.refresh; true } });
+	view
+};
+
+~bandPanel = { |t, d|
+	var params = ~deviceTypes[\band][\params];
+	VLayout(~bandGraph.(t, d), HLayout(*(params.collect { |p| ~dknob.(t, d, p, t[\color]) } ++ [nil])).spacing_(0)).spacing_(2)
+};
