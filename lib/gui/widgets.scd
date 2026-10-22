@@ -88,6 +88,7 @@
 		};
 		Pen.stringCenteredIn(~fmt.(spec.map(val)), Rect(0, size + 16, w, 13), Font.monospace(9), Color.grey(0.88));
 	};
+	view.toolTip = (name ? label ? "") ++ "\ndrag up/down (shift = fine) · double-click = reset\nright-click = give it a modulator (or take it away)";
 	view.mouseDownAction = { |uv, x, y, mod, bn, clicks|
 		case
 		{ bn == 1 or: { mod.isAlt } } { ~toggleMod.(target); y0 = nil; uv.refresh }
@@ -120,7 +121,7 @@
 
 // A slider with no numbers. Drag (or click) along it; right-click gives it a modulator, like a knob.
 // `glow` (optional function) returns 0..1 to light it up (sometimes uses it to flash when it fires).
-~bar = { |spec, get, set, color, tid, name, width = 90, glow|
+~bar = { |spec, get, set, color, tid, name, width = 90, glow, inside|
 	var view = UserView().fixedHeight_(18).minWidth_(width).canFocus_(false), val = 0, touched = 0, target, change, dragging = false;
 	spec = spec.asSpec;
 	color = color ? ~accent;
@@ -135,10 +136,16 @@
 	};
 	view.drawFunc = { |uv|
 		var b = uv.bounds.moveTo(0, 0), m = ~modFor.(tid), g = (glow.value ? 0).clip(0, 1);
-		Pen.fillColor = Color.grey(0.13).blend(color, g * 0.5);
+		Pen.fillColor = Color.grey(0.24).blend(color, g * 0.5);
 		Pen.fillRect(b);
+		Pen.strokeColor = color.copy.alpha_(0.5);
+		Pen.width = 1;
+		Pen.strokeRect(b.insetBy(0.5, 0.5));
 		Pen.fillColor = color.copy.alpha_(0.85);
 		Pen.fillRect(Rect(0, 3, b.width * val, b.height - 6));
+		if (inside.notNil) {
+			Pen.stringCenteredIn(inside, b, Font(Font.defaultSansFace, 9), Color.white.alpha_(0.85));
+		};
 		if (m.notNil) {
 			Pen.fillColor = Color(1, 1, 1, 0.35);
 			Pen.fillRect(Rect(b.width * (m[\home] - m[\depth].abs).clip(0, 1), 0,
@@ -152,6 +159,7 @@
 		if (~learnTarget === target) { Pen.strokeColor = Color.yellow; Pen.width = 2; Pen.strokeRect(b.insetBy(1, 1)) };
 		if (~isMapped.(target)) { Pen.fillColor = Color(0.4, 0.8, 1); Pen.fillOval(Rect(b.width - 7, 2, 5, 5)) };
 	};
+	view.toolTip = (name ? "") ++ "\ndrag along it · double-click = 0 · right-click = give it a modulator";
 	view.mouseDownAction = { |uv, x, y, mod, bn, clicks|
 		case
 		{ bn == 1 or: { mod.isAlt } } { ~toggleMod.(target); uv.refresh }
@@ -181,7 +189,8 @@
 	var glow = { (~soFor.(id) !? { |e| 1 - ((Main.elapsedTime - e[\last]) / 0.6) } ? 0).max(0) };
 	var b = Button().canFocus_(false).font_(Font(Font.defaultSansFace, 10))
 		.states_([[label, Color.grey(0.85), Color.grey(0.24)]])
-		.action_({ ~soFor.(id) !? { |e| ~soFire.(e) } });
+		.action_({ ~soFor.(id) !? { |e| ~soFire.(e) } })
+		.toolTip_("every so often: " ++ label ++ "\nbutton = now · slider = how often (empty = never)");
 	HLayout(b, ~bar.([0, 1], get, set, color, id, label, width, glow)).spacing_(2).margins_(0)
 };
 

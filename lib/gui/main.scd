@@ -168,7 +168,7 @@
 		++ t[\devices].collect { |d| ~devicePanel.(t, d) }
 		++ [StaticText().string_("drop effects here\nor use + in the browser").stringColor_(Color.grey(0.45))
 			.align_(\center).fixedWidth_(170)];
-	var canvas = View().layout_(HLayout(*(panels ++ [nil])).margins_(2).spacing_(6));
+	var canvas = View().layout_(HLayout(*([~trackColumn.(t)] ++ panels ++ [nil])).margins_(2).spacing_(6));
 	~dropTarget.(canvas, { t[\name] }, { nil });
 	~hscroll.(ScrollView().hasVerticalScroller_(false).canvas_(canvas))
 };
@@ -257,7 +257,6 @@
 		).margins_(6).spacing_(6);
 	};
 	~buildDetail.();
-	~refreshMods = { if (~detailMode == \mods) { ~refreshDetail.() } };
 	~win.front;
 	~installKeys.();
 	~startTick.();

@@ -16,6 +16,7 @@
 		Pen.fillRect(Rect(0, 0, 4, b.height));
 		Pen.stringAtPoint(label, Point(10, 2), Font(Font.defaultSansFace, 11), Color.grey(0.92));
 	};
+	v.toolTip = ~descFor.(obj);
 	v.beginDragAction = { obj };
 	v.dragLabel = label;
 	v.mouseDownAction = { |uv, x, y, mod, bn, clicks|

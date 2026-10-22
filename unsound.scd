@@ -56,12 +56,15 @@ if (s.serverRunning) {
 	"lib/voices/deck.scd",
 	"lib/voices/osc3.scd",
 	"lib/voices/atari.scd",
+	"lib/voices/mouth.scd",
 	"lib/motion.scd",
+	"lib/descriptions.scd",
 	"lib/gui/widgets.scd",
 	"lib/gui/clips.scd",
 	"lib/gui/browser.scd",
 	"lib/gui/mixer.scd",
 	"lib/gui/eq.scd",
+	"lib/gui/mixmods.scd",
 	"lib/gui/box.scd",
 	"lib/gui/main.scd"
 ].do { |file| (~root +/+ file).load };

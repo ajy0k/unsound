@@ -94,6 +94,15 @@ automatic movement; it's yours to play by hand.
 (right-click a cell to end the lane there), generated patterns in five styles (four, broken,
 euclid, sparse, chaos), mutation that drifts home, and a synth or sampled sound per lane.
 
+**The chain** starts with **mix** (volume, pan, sends, named by what's on each return) and
+**mods**: every mod on the track as a tree. Right-click any knob to give it a mod; right-click a
+mod's rate or depth and the mod on the mod appears indented under it, as deep as you like.
+Hover over anything in the browser to see what it does.
+
+**mouth:** a talking machine. It babbles, says what you type (in a loop), or holds a vowel you sweep
+with the XY pad. Formant filters for the vowels, hiss for s / sh / f, pops for p / t / k, a nose for
+m / n; pitch, throat, sing, robot and lofi (down to Speak & Spell).
+
 **noise:** an extensible noise generator: two layers, each sweeping continuously through a list of
 noise kinds (white, pink, brown, bits, velvet, dust, crackle, rain, wind, radio, metal, logistic,
 henon, gendy…), then filter, drive, pulse gate, width. Add a kind with one line in `~noiseKinds`

@@ -272,7 +272,8 @@
 // Tape: how much is on it, and keep (everything / the last minute). Return / shift-return do the same.
 ~tapeControls = {
 	var shown = StaticText().font_(Font.monospace(9)).stringColor_(Color.grey(0.7)).fixedWidth_(64);
-	var keep = ~bbutton.("keep", "btn:keep", Color(0.5, 0.15, 0.15));
+	var keep = ~bbutton.("keep", "btn:keep", Color(0.5, 0.15, 0.15))
+		.toolTip_("save what's on the tape (up to 15 min) to ~/Music/unsound/ · return · shift-return = last minute");
 	~bindings.add({
 		var secs = ~tapeSecs.().asInteger;
 		if (shown.isClosed) { false } {
@@ -294,8 +295,10 @@
 	};
 	hold.mouseDownAction = { ~holdTakeover.(true); hold.refresh; nil };
 	hold.mouseUpAction = { ~holdTakeover.(false); hold.refresh; nil };
-	HLayout(~lbl.("takeover", 9),
-		~bar.([0, 1], { ~takeoverAmt }, { |x| ~setTakeover.(x) }, Color(1, 0.3, 0.1), "g:takeover", "takeover", 50),
+	hold.toolTip = "hold: the focused track goes all the way to infinity (or hold the ' key)";
+	HLayout(
+		~bar.([0, 1], { ~takeoverAmt }, { |x| ~setTakeover.(x) }, Color(1, 0.3, 0.1), "g:takeover",
+			"takeover: the focused track takes over (drive + level up, everything else ducks)", 90, nil, "takeover"),
 		hold).spacing_(2)
 };
 

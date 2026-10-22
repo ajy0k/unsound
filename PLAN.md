@@ -97,13 +97,24 @@ control sends will map them.
 5. ✅ **digital drawer** (new browser category): bitmask, aliaser, bins, codec, overflow, skip, with
    presets (xor storm, dial-up, wraparound, scratched…) and two chains (digital rot, broken stream)
 
+After the first play ("this thing fucking ROCKS now!!!"): the user couldn't find the sends,
+the mods-into-mods, or the takeover slider. Added:
+- ✅ a **mix** column at the start of every chain (volume, pan, wander, a send per return, named by its effect)
+- ✅ **mods as a tree** under it: every mod on the track; a mod's rate/depth are knobs, and a mod on
+  them shows up indented underneath (the "visible chains" item, first version)
+- ✅ **hover tooltips** on the browser (what each thing is), knobs, sliders and the top bar
+- ✅ visible slider tracks (the takeover slider was there but drawn invisibly dark)
+- ✅ **mouth**: a talking machine (formant synthesis): babbles, says typed text in a loop, or holds a
+  vowel; s/sh/f hiss, p/t/k pops, m/n nose; pitch, throat size, sing, robot, lofi (Speak & Spell)
+
 Also from the same session: **pop-out windows** (⧉ on any device, or the whole track: as many as
 you like, like plugin windows; the user never minded 20 windows and tabbing between them) and
 **M / S / volume** on every pad.
 
 **Then**
 - ⬜ **lines** (hit and phrase)
-- ⬜ **visible mod chains**, then the **console**
+- 🟡 **visible mod chains** (the tree in the mods panel is a first version; next: show the chain on
+  the knob itself), then the **console**
 - ⬜ **controller template** for both controllers
 - ⬜ input gain + musical breakup on every device; overdriven sends
 - ⬜ "stack 7 random" in the drawer
